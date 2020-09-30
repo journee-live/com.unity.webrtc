@@ -15,10 +15,10 @@ UnityVideoTrackSource::UnityVideoTrackSource(
     bool is_screencast,
     absl::optional<bool> needs_denoising) :
     AdaptedVideoTrackSource(/*required_alignment=*/1),
-    frame_(frame),
-    encoder_(nullptr),
     is_screencast_(is_screencast),
-    needs_denoising_(needs_denoising)
+    needs_denoising_(needs_denoising),
+    encoder_(nullptr),
+    frame_(frame)
 {
 //  DETACH_FROM_THREAD(thread_checker_);
 }

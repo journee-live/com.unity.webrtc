@@ -3,6 +3,10 @@
 
 #include "DummyVideoEncoder.h"
 
+#if defined(__APPLE__)
+#import "sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.h"
+#endif
+
 namespace unity
 {    
 namespace webrtc
@@ -24,11 +28,30 @@ namespace webrtc
         return false;
     }
 
+    webrtc::VideoEncoderFactory* GetDefaultEncoderFactory()
+    {
+#if defined(__APPLE__)
+        return (webrtc::VideoEncoderFactory*)[[RTCDefaultVideoEncoderFactory alloc] init];
+#endif
+        return new webrtc::InternalEncoderFactory();
+    }
+
     UnityVideoEncoderFactory::UnityVideoEncoderFactory(IVideoEncoderObserver* observer)
-    : internal_encoder_factory_(new webrtc::InternalEncoderFactory())
+    : internal_encoder_factory_(GetDefaultEncoderFactory())
+
     {
         m_observer = observer;
     }
+    
+    UnityVideoEncoderFactory::~UnityVideoEncoderFactory()
+    {
+#if defined(__APPLE__)
+        RTCDefaultVideoEncoderFactory* factory =
+            (RTCDefaultVideoEncoderFactory*)internal_encoder_factory_.release();
+        [factory release];
+#endif
+    }
+
 
     std::vector<webrtc::SdpVideoFormat> UnityVideoEncoderFactory::GetHardwareEncoderFormats() const
     {
