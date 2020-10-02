@@ -5,6 +5,7 @@
 
 #if defined(__APPLE__)
 #import "sdk/objc/components/video_codec/RTCDefaultVideoEncoderFactory.h"
+#import "sdk/objc/native/api/video_encoder_factory.h"
 #endif
 
 namespace unity
@@ -31,7 +32,7 @@ namespace webrtc
     webrtc::VideoEncoderFactory* GetDefaultEncoderFactory()
     {
 #if defined(__APPLE__)
-        return (webrtc::VideoEncoderFactory*)[[RTCDefaultVideoEncoderFactory alloc] init];
+        return webrtc::ObjCToNativeVideoEncoderFactory([[RTCDefaultVideoEncoderFactory alloc] init]).release();
 #endif
         return new webrtc::InternalEncoderFactory();
     }
@@ -83,11 +84,12 @@ namespace webrtc
 
     std::unique_ptr<webrtc::VideoEncoder> UnityVideoEncoderFactory::CreateVideoEncoder(const webrtc::SdpVideoFormat& format)
     {
+#if !defined(__APPLE__)
         if (IsFormatSupported(GetHardwareEncoderFormats(), format))
         {
             return std::make_unique<DummyVideoEncoder>(m_observer);
         }
-
+#endif
         std::unique_ptr<webrtc::VideoEncoder> internalEncoder;
         // Try creating internal encoder.
         if (IsFormatSupported(GetSupportedFormats(), format))
