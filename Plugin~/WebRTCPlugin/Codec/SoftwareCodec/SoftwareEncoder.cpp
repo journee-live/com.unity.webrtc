@@ -14,7 +14,10 @@ namespace unity
 namespace webrtc
 {
 
-    SoftwareEncoder::SoftwareEncoder(int _width, int _height, IGraphicsDevice* device) : m_width(_width), m_height(_height), m_device(device)
+    SoftwareEncoder::SoftwareEncoder(int width, int height, IGraphicsDevice* device)
+    : m_device(device)
+    , m_width(width)
+    , m_height(height)
     {
 
     }
