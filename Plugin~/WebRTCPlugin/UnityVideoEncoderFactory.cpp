@@ -44,19 +44,13 @@ namespace webrtc
         m_observer = observer;
     }
     
-    UnityVideoEncoderFactory::~UnityVideoEncoderFactory()
-    {
-#if defined(__APPLE__)
-        RTCDefaultVideoEncoderFactory* factory =
-            (RTCDefaultVideoEncoderFactory*)internal_encoder_factory_.release();
-        [factory release];
-#endif
-    }
-
+    UnityVideoEncoderFactory::~UnityVideoEncoderFactory() = default;
 
     std::vector<webrtc::SdpVideoFormat> UnityVideoEncoderFactory::GetHardwareEncoderFormats() const
     {
-        return { webrtc::CreateH264Format(webrtc::H264::kProfileConstrainedBaseline, webrtc::H264::kLevel5_1, "1") };
+        return { webrtc::CreateH264Format(
+            webrtc::H264::kProfileConstrainedBaseline,
+            webrtc::H264::kLevel5_1, "1") };
     }
 
 

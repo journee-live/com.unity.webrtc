@@ -22,7 +22,7 @@ sudo make install
 # cd ..
 # mkdir debug
 # cd debug
-# cmake .. -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_FLAGS_DEBUG="-D_LIBCPP_DEBUG=1 -D_LIBCPP_DEBUG_LEVEL=0"
+# cmake .. -DCMAKE_BUILD_TYPE=Debug
 # make
 # sudo make install
 
