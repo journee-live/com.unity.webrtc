@@ -56,6 +56,10 @@ namespace webrtc
 
     std::vector<webrtc::SdpVideoFormat> UnityVideoEncoderFactory::GetSupportedFormats() const
     {
+#if defined(__APPLE__)
+        auto formats = internal_encoder_factory_->GetSupportedFormats();
+        return formats;
+#else
         std::vector <webrtc::SdpVideoFormat> formats = GetHardwareEncoderFormats();
 
         // todo(kazuki): should support codec other than h264 like vp8, vp9 and av1.
@@ -64,6 +68,7 @@ namespace webrtc
         // formats.insert(formats.end(), formats2.begin(), formats2.end());
         
         return formats;
+#endif
     }
 
     webrtc::VideoEncoderFactory::CodecInfo UnityVideoEncoderFactory::QueryVideoEncoder(const webrtc::SdpVideoFormat& format) const

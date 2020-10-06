@@ -36,7 +36,8 @@ namespace webrtc
     bool EncoderFactory::GetHardwareEncoderSupport()
     {
 #if defined(SUPPORT_METAL)
-        return false;
+        // todo(kazuki): check VideoToolbox compatibility
+        return true;
 #else
         return NvEncoder::LoadModule();
 #endif
