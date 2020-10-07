@@ -131,6 +131,8 @@ static void UNITY_INTERFACE_API OnRenderEvent(int eventID, void* data)
     {
         case VideoStreamRenderEventID::Initialize:
         {
+            if (s_UnityInterfaces == nullptr)
+                return;
             if (!GraphicsDevice::GetInstance().IsInitialized())
             {
                 GraphicsDevice::GetInstance().Init(s_UnityInterfaces);

@@ -584,8 +584,31 @@ namespace Unity.WebRTC
             ref RTCSessionDescription desc)
         {
             var op = new RTCSetSessionDescriptionAsyncOperation(this);
-            WebRTC.Context.PeerConnectionSetLocalDescription(self, ref desc);
-            return op;
+            RTCError error = WebRTC.Context.PeerConnectionSetLocalDescription(
+                self, ref desc);
+            if (error.errorType == RTCErrorType.None)
+            {
+                return op;
+            }
+            throw new RTCErrorException(ref error);
+        }
+
+
+        /// <summary>
+        ///
+        /// </summary>
+        /// <param name="desc"></param>
+        /// <returns></returns>
+        public RTCSetSessionDescriptionAsyncOperation SetRemoteDescription(ref RTCSessionDescription desc)
+        {
+            var op = new RTCSetSessionDescriptionAsyncOperation(this);
+            RTCError error = WebRTC.Context.PeerConnectionSetRemoteDescription(
+                self, ref desc);
+            if (error.errorType == RTCErrorType.None)
+            {
+                return op;
+            }
+            throw new RTCErrorException(ref error);
         }
 
         /// <summary>
@@ -717,18 +740,6 @@ namespace Unity.WebRTC
                 }
                 throw new InvalidOperationException("PendingRemoteDescription is not exist");
             }
-        }
-
-        /// <summary>
-        ///
-        /// </summary>
-        /// <param name="desc"></param>
-        /// <returns></returns>
-        public RTCSetSessionDescriptionAsyncOperation SetRemoteDescription(ref RTCSessionDescription desc)
-        {
-            var op = new RTCSetSessionDescriptionAsyncOperation(this);
-            WebRTC.Context.PeerConnectionSetRemoteDescription(self, ref desc);
-            return op;
         }
 
         [AOT.MonoPInvokeCallback(typeof(DelegateNativePeerConnectionSetSessionDescSuccess))]
