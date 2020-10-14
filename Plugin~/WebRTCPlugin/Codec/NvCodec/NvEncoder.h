@@ -44,6 +44,8 @@ namespace webrtc
         static uint32_t GetNumChromaPlanes(NV_ENC_BUFFER_FORMAT);
         static uint32_t GetChromaHeight(const NV_ENC_BUFFER_FORMAT bufferFormat, const uint32_t lumaHeight);
         static uint32_t GetWidthInBytes(const NV_ENC_BUFFER_FORMAT bufferFormat, const uint32_t width);
+        static std::string NvEncoder::GetRateControlString(const NV_ENC_PARAMS_RC_MODE mode);
+        static NV_ENC_PARAMS_RC_MODE NvEncoder::GetRateControlMode(std::string mode);
 
         void InitV() override;
         void SetRates(uint32_t bitRate, int64_t frameRate) override;

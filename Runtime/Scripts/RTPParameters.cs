@@ -1,11 +1,13 @@
 using System;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
+using WebSocketSharp;
 
 namespace Unity.WebRTC
 {
     public class RTCRtpEncodingParameters
     {
+
         public bool active;
         public ulong? maxBitrate;
         public ulong? minBitrate;
@@ -13,9 +15,19 @@ namespace Unity.WebRTC
         public double? scaleResolutionDownBy;
         public string rid;
 
+        // [autr] newly added parameters for NVIDIA SDK
+
+        public string rateControlMode;
+        public uint? minQP;
+        public uint? width;
+        public uint? height;
+        public uint? minFramerate;
+
+
         internal RTCRtpEncodingParameters(RTCRtpEncodingParametersInternal parameter)
         {
             active = parameter.active;
+
             if (parameter.hasValueMaxBitrate)
                 maxBitrate = parameter.maxBitrate;
             if (parameter.hasValueMinBitrate)
@@ -26,23 +38,65 @@ namespace Unity.WebRTC
                 scaleResolutionDownBy = parameter.scaleResolutionDownBy;
             if(parameter.rid != IntPtr.Zero)
                 rid = parameter.rid.AsAnsiStringWithFreeMem();
+
+
+            // [autr] newly added parameters for NVIDIA SDK
+
+            if (parameter.hasValueRateControlMode)
+                rateControlMode = parameter.rateControlMode;
+            if (parameter.hasValueWidth)
+                width = parameter.width;
+            if (parameter.hasValueHeight)
+                height = parameter.height;
+            if (parameter.hasValueMinQP)
+                minQP = parameter.minQP;
+            if (parameter.hasValueMinFramerate)
+                minFramerate = parameter.minFramerate;
         }
 
         internal void CopyInternal(ref RTCRtpEncodingParametersInternal instance)
         {
             instance.active = active;
+
             instance.hasValueMaxBitrate = maxBitrate.HasValue;
             if(maxBitrate.HasValue)
                 instance.maxBitrate = maxBitrate.Value;
+
             instance.hasValueMinBitrate = minBitrate.HasValue;
             if (minBitrate.HasValue)
                 instance.minBitrate = minBitrate.Value;
+
             instance.hasValueMaxFramerate = maxFramerate.HasValue;
             if (maxFramerate.HasValue)
                 instance.maxFramerate = maxFramerate.Value;
+
             instance.hasValueScaleResolutionDownBy = scaleResolutionDownBy.HasValue;
             if (scaleResolutionDownBy.HasValue)
                 instance.scaleResolutionDownBy = scaleResolutionDownBy.Value;
+
+            // [autr] newly added parameters for NVIDIA SDK
+
+            instance.hasValueRateControlMode = rateControlMode.IsNullOrEmpty();
+            if (rateControlMode.IsNullOrEmpty())
+                instance.rateControlMode = rateControlMode;
+
+            instance.hasValueWidth = width.HasValue;
+            if (width.HasValue)
+                instance.width = width.Value;
+
+            instance.hasValueHeight = height.HasValue;
+            if (height.HasValue)
+                instance.height = height.Value;
+
+            instance.hasValueMinQP = minQP.HasValue;
+            if (minQP.HasValue)
+                instance.minQP = minQP.Value;
+
+            instance.hasValueMinFramerate = minFramerate.HasValue;
+            if (minFramerate.HasValue)
+                instance.minFramerate = minFramerate.Value;
+
+
             instance.rid = string.IsNullOrEmpty(rid) ? IntPtr.Zero : Marshal.StringToCoTaskMemAnsi(rid);
         }
     }
@@ -115,6 +169,26 @@ namespace Unity.WebRTC
         [MarshalAs(UnmanagedType.U1)]
         public bool hasValueScaleResolutionDownBy;
         public double scaleResolutionDownBy;
+
+
+        // [autr] newly added parameters for NVIDIA SDK
+
+        [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueRateControlMode;
+        public string rateControlMode;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueWidth;
+        public uint width;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueHeight;
+        public uint height;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueMinQP;
+        public uint minQP;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueMinFramerate;
+        public uint minFramerate;
+
         public IntPtr rid;
     }
 }

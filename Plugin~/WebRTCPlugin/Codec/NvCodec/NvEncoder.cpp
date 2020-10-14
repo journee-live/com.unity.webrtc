@@ -3,6 +3,7 @@
 #include "Context.h"
 #include <cstring>
 #include "GraphicsDevice/IGraphicsDevice.h"
+#include "HWSettings.h"
 
 #if _WIN32
 #else
@@ -36,6 +37,8 @@ namespace webrtc
 
     void NvEncoder::InitV()
     {
+
+
         bool result = true;
         if (m_initializationResult == CodecInitializationResult::NotInitialized)
         {
@@ -102,6 +105,22 @@ namespace webrtc
         //Quality Control
         nvEncConfig.encodeCodecConfig.h264Config.level = NV_ENC_LEVEL_H264_51;
 #pragma endregion
+
+        // syncronise hardware settings obj
+
+        HWSettings* hw = HWSettings::getPtr();
+        hw->minBitrate = nvEncConfig.rcParams.averageBitRate;
+        hw->maxBitrate = nvEncConfig.rcParams.maxBitRate;
+        hw->minQP = nvEncConfig.rcParams.minQP.qpIntra;
+        hw->width = nvEncInitializeParams.encodeWidth;
+        hw->height = nvEncInitializeParams.encodeHeight;
+        hw->rateControlMode = GetRateControlString(nvEncConfig.rcParams.rateControlMode);
+        hw->minFramerate = nvEncInitializeParams.frameRateNum;
+        hw->maxFramerate = nvEncInitializeParams.frameRateNum;
+
+
+
+
 #pragma region get encoder capability
         NV_ENC_CAPS_PARAM capsParam = { 0 };
         capsParam.version = NV_ENC_CAPS_PARAM_VER;
@@ -216,23 +235,56 @@ namespace webrtc
 
     void NvEncoder::UpdateSettings()
     {
+        HWSettings* hw = HWSettings::getPtr();
         bool settingChanged = false;
-        if (nvEncConfig.rcParams.averageBitRate != m_targetBitrate)
+        std::string u;
+        if (nvEncConfig.rcParams.averageBitRate != hw->minBitrate)
         {
+            u = "minBitrate/averageBitrate";
             nvEncConfig.rcParams.averageBitRate = m_targetBitrate;
             settingChanged = true;
         }
-        if (nvEncInitializeParams.frameRateNum != m_frameRate)
+        if (nvEncConfig.rcParams.maxBitRate != hw->maxBitrate)
         {
+            u = "maxBitrate";
+            nvEncConfig.rcParams.averageBitRate = m_targetBitrate;
+            settingChanged = true;
+        }
+        if (nvEncInitializeParams.frameRateNum != hw->minFramerate)
+        {
+            u = "minFramerate";
             // nvcodec do not allow a framerate over 240
             const uint32_t kMaxFramerate = 240;
             uint32_t targetFramerate = std::min(m_frameRate, kMaxFramerate);
-            nvEncInitializeParams.frameRateNum = targetFramerate;
+            nvEncInitializeParams.frameRateNum = hw->minFramerate;
+            settingChanged = true;
+        }
+        if (nvEncInitializeParams.encodeWidth != hw->width)
+        {
+            u = "width";
+            nvEncInitializeParams.encodeWidth = hw->width;
+            nvEncInitializeParams.darWidth = hw->width;
+            settingChanged = true;
+        }
+        if (nvEncInitializeParams.encodeHeight != hw->height)
+        {
+            u = "height";
+            nvEncInitializeParams.encodeHeight = hw->height;
+            nvEncInitializeParams.darHeight = hw->height;
+            settingChanged = true;
+        }
+        if (nvEncConfig.rcParams.minQP.qpIntra != hw->minQP)
+        {
+            u = "minQP";
+            nvEncConfig.rcParams.minQP.qpIntra = nvEncConfig.rcParams.minQP.qpInterP = nvEncConfig.rcParams.minQP.qpInterB = hw->minQP;
             settingChanged = true;
         }
 
         if (settingChanged)
         {
+            std::string updated = u + " updated";
+
+            
             NV_ENC_RECONFIGURE_PARAMS nvEncReconfigureParams;
             std::memcpy(&nvEncReconfigureParams.reInitEncodeParams, &nvEncInitializeParams, sizeof(nvEncInitializeParams));
             nvEncReconfigureParams.version = NV_ENC_RECONFIGURE_PARAMS_VER;
@@ -475,6 +527,27 @@ namespace webrtc
             default:
                 return 0;
         }
+    }
+
+    std::string NvEncoder::GetRateControlString(const NV_ENC_PARAMS_RC_MODE mode)
+    {
+        switch (mode) {
+        case NV_ENC_PARAMS_RC_CONSTQP:
+            return "CBRQP";
+        case NV_ENC_PARAMS_RC_CBR:
+            return "CBR";
+        case NV_ENC_PARAMS_RC_VBR:
+            return "VBR";
+        default:
+            return "CBR";
+        }
+    }
+    NV_ENC_PARAMS_RC_MODE NvEncoder::GetRateControlMode(std::string mode)
+    {
+        if (mode == "CBRQP") return NV_ENC_PARAMS_RC_CONSTQP;
+        if (mode == "CBR") return NV_ENC_PARAMS_RC_CBR;
+        if (mode == "VBR") return NV_ENC_PARAMS_RC_VBR;
+        return NV_ENC_PARAMS_RC_CBR;
     }
     
 } // end namespace webrtc
