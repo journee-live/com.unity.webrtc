@@ -732,8 +732,8 @@ extern "C"
                 dst.encodings[i].max_framerate = static_cast<int>(src->encodings[i].maxFramerate);
                 hw->maxFramerate = static_cast<int>(src->encodings[i].maxFramerate);
             if (src->encodings[i].hasValueScaleResolutionDownBy)
-                dst.encodings[i].scale_resolution_down_by = src->encodings[i].scaleResolutionDownBy;
-            if(src->encodings[i].rid != nullptr)
+                dst.encodings[i].scale_resolution_down_by = static_cast<double>(src->encodings[i].scaleResolutionDownBy);
+            if(src->encodings[i].rid != nullptr && src->encodings[i].rid != NULL)
                 dst.encodings[i].rid = std::string(src->encodings[i].rid);
 
             // [autr] newly added parameters for NVIDIA SDK

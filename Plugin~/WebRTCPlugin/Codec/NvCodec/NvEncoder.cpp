@@ -73,7 +73,15 @@ namespace webrtc
         nvEncInitializeParams.darWidth = m_width;
         nvEncInitializeParams.darHeight = m_height;
         nvEncInitializeParams.encodeGUID = NV_ENC_CODEC_H264_GUID;
-        nvEncInitializeParams.presetGUID = NV_ENC_PRESET_LOW_LATENCY_HQ_GUID;
+        nvEncInitializeParams.presetGUID = NV_ENC_PRESET_LOW_LATENCY_HP_GUID; // switch to HP
+
+
+        // Performance numbers: http://developer.download.nvidia.com/compute/nvenc/v4.0/NVENC_AppNote.pdf
+        // NV_ENC_PRESET_LOW_LATENCY_HQ_GUID
+        // NV_ENC_PRESET_LOW_LATENCY_HP_GUID
+        // NV_ENC_PRESET_LOW_LATENCY_DEFAULT_GUID
+
+
         nvEncInitializeParams.frameRateNum = m_frameRate;
         nvEncInitializeParams.frameRateDen = 1;
         nvEncInitializeParams.enablePTD = 1;
@@ -91,13 +99,33 @@ namespace webrtc
         checkf(NV_RESULT(errorCode), StringFormat("Failed to select NVEncoder preset config %d", errorCode).c_str());
         std::memcpy(&nvEncConfig, &presetConfig.presetCfg, sizeof(NV_ENC_CONFIG));
         nvEncConfig.profileGUID = NV_ENC_H264_PROFILE_BASELINE_GUID;
-        nvEncConfig.gopLength = nvEncInitializeParams.frameRateNum;
-        nvEncConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CBR_LOWDELAY_HQ;
+
+
+        nvEncConfig.frameIntervalP = 1;
+        nvEncConfig.gopLength = m_frameRate;
+        nvEncConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CBR2;
+
+       // NV_ENC_PARAMS_RC_CBR2
+       // NV_ENC_PARAMS_RC_CBR
+       // NV_ENC_PARAMS_RC_2_PASS_FRAMESIZE_CAP
+       // NV_ENC_PARAMS_RC_VBR
+       // NV_ENC_PARAMS_RC_2_PASS_QUALITY
+
+        nvEncConfig.rcParams.enableAQ = 1;
+        nvEncConfig.encodeCodecConfig.h264Config.maxNumRefFrames = 60;
+        nvEncConfig.encodeCodecConfig.h264Config.enableIntraRefresh = 1;
+        nvEncConfig.encodeCodecConfig.h264Config.idrPeriod = m_frameRate;
+        //nvEncConfig.encodeCodecConfig.h264Config.enableLTR = 1;
+        //nvEncConfig.encodeCodecConfig.h264Config.ltrTrustMode = 1;
+        //nvEncConfig.encodeCodecConfig.h264Config.ltrNumFrames = 8;
+
+        // https://docs.nvidia.com/video-technologies/video-codec-sdk/nvenc-video-encoder-api-prog-guide/index.html
+        // http://developer.download.nvidia.com/compute/nvenc/v4.0/NVENC_AppNote.pdf
+
         nvEncConfig.rcParams.averageBitRate =
             (static_cast<unsigned int>(5.0f *
             nvEncInitializeParams.encodeWidth *
             nvEncInitializeParams.encodeHeight) / (m_width * m_height)) * 100000;
-        nvEncConfig.encodeCodecConfig.h264Config.idrPeriod = nvEncConfig.gopLength;
 
         nvEncConfig.encodeCodecConfig.h264Config.sliceMode = 0;
         nvEncConfig.encodeCodecConfig.h264Config.sliceModeData = 0;
@@ -137,6 +165,7 @@ namespace webrtc
 #pragma endregion
         InitEncoderResources();
         m_isNvEncoderSupported = true;
+        //pNvEncodeAPI->nvEncReconfigureEncoder
     }
 
     NvEncoder::~NvEncoder()
@@ -241,50 +270,48 @@ namespace webrtc
         if (nvEncConfig.rcParams.averageBitRate != hw->minBitrate)
         {
             u = "minBitrate/averageBitrate";
-            nvEncConfig.rcParams.averageBitRate = m_targetBitrate;
+            nvEncConfig.rcParams.averageBitRate = hw->minBitrate;
             settingChanged = true;
         }
-        if (nvEncConfig.rcParams.maxBitRate != hw->maxBitrate)
+        /*if (nvEncConfig.rcParams.maxBitRate != hw->maxBitrate)
         {
             u = "maxBitrate";
-            nvEncConfig.rcParams.averageBitRate = m_targetBitrate;
+            nvEncConfig.rcParams.averageBitRate = hw->maxBitrate;
             settingChanged = true;
-        }
+        }*/
         if (nvEncInitializeParams.frameRateNum != hw->minFramerate)
         {
             u = "minFramerate";
             // nvcodec do not allow a framerate over 240
             const uint32_t kMaxFramerate = 240;
-            uint32_t targetFramerate = std::min(m_frameRate, kMaxFramerate);
+            uint32_t targetFramerate = std::min((uint32_t)hw->minFramerate, kMaxFramerate);
             nvEncInitializeParams.frameRateNum = hw->minFramerate;
             settingChanged = true;
         }
-        if (nvEncInitializeParams.encodeWidth != hw->width)
-        {
-            u = "width";
-            nvEncInitializeParams.encodeWidth = hw->width;
-            nvEncInitializeParams.darWidth = hw->width;
-            settingChanged = true;
-        }
-        if (nvEncInitializeParams.encodeHeight != hw->height)
-        {
-            u = "height";
-            nvEncInitializeParams.encodeHeight = hw->height;
-            nvEncInitializeParams.darHeight = hw->height;
-            settingChanged = true;
-        }
-        if (nvEncConfig.rcParams.minQP.qpIntra != hw->minQP)
-        {
-            u = "minQP";
-            nvEncConfig.rcParams.minQP.qpIntra = nvEncConfig.rcParams.minQP.qpInterP = nvEncConfig.rcParams.minQP.qpInterB = hw->minQP;
-            settingChanged = true;
-        }
+        //if (nvEncInitializeParams.encodeWidth != hw->width)
+        //{
+        //    u = "width";
+        //    nvEncInitializeParams.encodeWidth = hw->width;
+        //    nvEncInitializeParams.darWidth = hw->width;
+        //    settingChanged = true;
+        //}
+        //if (nvEncInitializeParams.encodeHeight != hw->height)
+        //{
+        //    u = "height";
+        //    nvEncInitializeParams.encodeHeight = hw->height;
+        //    nvEncInitializeParams.darHeight = hw->height;
+        //    settingChanged = true;
+        //}
+        //if (nvEncConfig.rcParams.minQP.qpIntra != hw->minQP)
+        //{
+        //    u = "minQP";
+        //    nvEncConfig.rcParams.minQP.qpIntra = nvEncConfig.rcParams.minQP.qpInterP = nvEncConfig.rcParams.minQP.qpInterB = hw->minQP;
+        //    settingChanged = true;
+        //}
 
         if (settingChanged)
         {
             std::string updated = u + " updated";
-
-            
             NV_ENC_RECONFIGURE_PARAMS nvEncReconfigureParams;
             std::memcpy(&nvEncReconfigureParams.reInitEncodeParams, &nvEncInitializeParams, sizeof(nvEncInitializeParams));
             nvEncReconfigureParams.version = NV_ENC_RECONFIGURE_PARAMS_VER;
@@ -298,6 +325,11 @@ namespace webrtc
     {
         m_frameRate = frameRate;
         m_targetBitrate = bitRate;
+
+        HWSettings* hw = HWSettings::getPtr();
+        hw->minFramerate = (int)frameRate;
+        hw->minBitrate = (int)bitRate;
+
         isIdrFrame = true;
     }
 
@@ -331,7 +363,7 @@ namespace webrtc
 #pragma region start encoding
         if (isIdrFrame)
         {
-            picParams.encodePicFlags = NV_ENC_PIC_FLAG_FORCEIDR | NV_ENC_PIC_FLAG_FORCEINTRA;
+            picParams.encodePicFlags |= NV_ENC_PIC_FLAG_FORCEIDR;
             isIdrFrame = false;
         }
         errorCode = pNvEncodeAPI->nvEncEncodePicture(pEncoderInterface, &picParams);
