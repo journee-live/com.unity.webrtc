@@ -672,7 +672,7 @@ extern "C"
         // [autr] newly added parameters for NVIDIA SDK
 
         bool hasValueRateControlMode;
-        std::string rateControlMode;
+        uint32_t rateControlMode;
         bool hasValueWidth;
         uint32_t width;
         bool hasValueHeight;
@@ -689,6 +689,10 @@ extern "C"
         uint32_t intraRefreshCount;
         bool hasValueAQ;
         bool AQ;
+        bool hasValueMaxNumRefFrames;
+        uint32_t maxNumRefFrames;
+        bool hasValueGOP;
+        bool GOP;
     };
 
     struct RTCRtpSendParameters
@@ -744,40 +748,26 @@ extern "C"
         return error.type();
     }
 
-    UNITY_INTERFACE_EXPORT void SetHardwareParameters(RtpSenderInterface* sender, const RTCRtpSendParameters* src) {
+    UNITY_INTERFACE_EXPORT void SetHardwareParameters(const RTCRtpEncodingParameters* src) {
 
-        HWSettings* hw = HWSettings::getPtr();
-        RtpParameters dst = sender->GetParameters();
+                HWSettings* hw = HWSettings::getPtr();
+                hw->maxBitrate = static_cast<int>(src->maxBitrate);
+                hw->minBitrate = static_cast<int>(src->minBitrate);
+                hw->maxFramerate = static_cast<int>(src->maxFramerate);
+                hw->rateControlMode = static_cast<int>(src->rateControlMode);
+                hw->minQP = static_cast<int>(src->minQP);
+                hw->maxQP = static_cast<int>(src->maxQP);
+                hw->width = static_cast<int>(src->width);
+                hw->height = static_cast<int>(src->height);
+                hw->minFramerate = static_cast<int>(src->minFramerate);
+                hw->intraRefreshPeriod = static_cast<int>(src->intraRefreshPeriod);
+                hw->intraRefreshCount = static_cast<int>(src->intraRefreshCount);
+                hw->AQ = src->AQ;
+                hw->maxNumRefFrames = static_cast<int>(src->maxNumRefFrames);
+                hw->GOP = src->GOP;
 
-        for (int i = 0; i < dst.encodings.size(); i++)
-        {
-            if (src->encodings[i].hasValueMaxBitrate)
-                hw->maxBitrate = static_cast<int>(src->encodings[i].maxBitrate);
-            if (src->encodings[i].hasValueMinBitrate)
-                hw->minBitrate = static_cast<int>(src->encodings[i].minBitrate);
-            if (src->encodings[i].hasValueMaxFramerate)
-                hw->maxFramerate = static_cast<int>(src->encodings[i].maxFramerate);
-            if (src->encodings[i].hasValueRateControlMode)
-                hw->rateControlMode = static_cast<std::string>(src->encodings[i].rateControlMode);
-            if (src->encodings[i].hasValueMinQP)
-                hw->minQP = static_cast<int>(src->encodings[i].minQP);
-            if (src->encodings[i].hasValueMaxQP)
-                hw->maxQP = static_cast<int>(src->encodings[i].maxQP);
-            if (src->encodings[i].hasValueWidth)
-                hw->width = static_cast<int>(src->encodings[i].width);
-            if (src->encodings[i].hasValueHeight)
-                hw->height = static_cast<int>(src->encodings[i].height);
-            if (src->encodings[i].hasValueMinFramerate)
-                hw->minFramerate = static_cast<int>(src->encodings[i].minFramerate);
-            if (src->encodings[i].hasValueIntraRefreshPeriod)
-                hw->intraRefreshPeriod = static_cast<int>(src->encodings[i].intraRefreshPeriod);
-            if (src->encodings[i].hasValueIntraRefreshCount)
-                hw->intraRefreshCount = static_cast<int>(src->encodings[i].intraRefreshCount);
-
-
-            hw->msg = "[WebRTCPlugin.cpp] parameters set";
-            DebugLog("[WebRTCPlugin.cpp] parameters set");
-        }
+                hw->msg = "[WebRTCPlugin.cpp] parameters set";
+                DebugLog("[WebRTCPlugin.cpp] parameters set");
     }
 
     UNITY_INTERFACE_EXPORT MediaStreamTrackInterface* SenderGetTrack(RtpSenderInterface* sender)

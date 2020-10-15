@@ -128,7 +128,6 @@ namespace unity
                 (static_cast<unsigned int>(5.0f *
                     nvEncInitializeParams.encodeWidth *
                     nvEncInitializeParams.encodeHeight) / (m_width * m_height)) * 100000;
-            nvEncConfig.encodeCodecConfig.h264Config.idrPeriod = nvEncConfig.gopLength;
 
             nvEncConfig.encodeCodecConfig.h264Config.sliceMode = 0;
             nvEncConfig.encodeCodecConfig.h264Config.sliceModeData = 0;
@@ -140,20 +139,35 @@ namespace unity
 
             // [autr] begin...
 
+            HWSettings* hw = HWSettings::getPtr();
+
             // Optimise: infinite or FPS gop length
 
-            nvEncConfig.gopLength = nvEncInitializeParams.frameRateNum; // NVENC_INFINITE_GOPLENGTH
+            nvEncConfig.encodeCodecConfig.h264Config.idrPeriod = m_frameRate;
+            nvEncConfig.gopLength = (hw->GOP) ? NVENC_INFINITE_GOPLENGTH : m_frameRate; // NVENC_INFINITE_GOPLENGTH
 
             // Error Recovery Settings: infra frame refreshing
 
-            nvEncConfig.encodeCodecConfig.h264Config.enableIntraRefresh = 1;
-            nvEncConfig.encodeCodecConfig.h264Config.intraRefreshPeriod = 30;
-            nvEncConfig.encodeCodecConfig.h264Config.intraRefreshCnt = 10;
+            nvEncConfig.encodeCodecConfig.h264Config.enableIntraRefresh = (hw->intraRefreshPeriod >= m_frameRate) && (hw->intraRefreshPeriod > hw->intraRefreshCount);
+            nvEncConfig.encodeCodecConfig.h264Config.intraRefreshPeriod = hw->intraRefreshPeriod;
+            nvEncConfig.encodeCodecConfig.h264Config.intraRefreshCnt = hw->intraRefreshCount;
+            nvEncConfig.rcParams.maxBitRate = hw->maxBitrate; // VBR only
 
             // Error Recovery Settings: adaptive quantization
 
-            nvEncConfig.rcParams.enableAQ = 1;
-            //nvEncConfig.encodeCodecConfig.h264Config.maxNumRefFrames = 60;
+            nvEncConfig.rcParams.enableAQ = hw->AQ;
+            if (hw->maxNumRefFrames > 0) nvEncConfig.encodeCodecConfig.h264Config.maxNumRefFrames = hw->maxNumRefFrames;
+
+            // Optimise: quantisation parameters
+
+            if (hw->minQP > 0) {
+                nvEncConfig.rcParams.enableMinQP = true;
+                nvEncConfig.rcParams.minQP.qpIntra = nvEncConfig.rcParams.minQP.qpInterP = nvEncConfig.rcParams.minQP.qpInterB = hw->minQP;
+            }
+            if (hw->maxQP > 0) {
+                nvEncConfig.rcParams.enableMaxQP = true;
+                nvEncConfig.rcParams.maxQP.qpIntra = nvEncConfig.rcParams.maxQP.qpInterP = nvEncConfig.rcParams.maxQP.qpInterB = hw->maxQP;
+            }
 
             // Error Recovery Settings: long term reference
 
@@ -163,20 +177,6 @@ namespace unity
 
 
 #pragma endregion
-
-        // syncronise hardware settings obj
-
-            HWSettings* hw = HWSettings::getPtr();
-            hw->minBitrate = nvEncConfig.rcParams.averageBitRate;
-            hw->maxBitrate = nvEncConfig.rcParams.maxBitRate;
-            hw->minQP = nvEncConfig.rcParams.minQP.qpIntra;
-            hw->width = nvEncInitializeParams.encodeWidth;
-            hw->height = nvEncInitializeParams.encodeHeight;
-            hw->rateControlMode = GetRateControlString(nvEncConfig.rcParams.rateControlMode);
-            hw->minFramerate = nvEncInitializeParams.frameRateNum;
-            hw->maxFramerate = nvEncInitializeParams.frameRateNum;
-
-
 
 
             // [/autr] end.
@@ -568,31 +568,31 @@ namespace unity
 
         // [autr] begin...
 
-        std::string NvEncoder::GetRateControlString(const NV_ENC_PARAMS_RC_MODE mode)
+        int NvEncoder::GetRateControlString(const NV_ENC_PARAMS_RC_MODE mode)
         {
             switch (mode) {
             case NV_ENC_PARAMS_RC_CBR:
-                return "CBR";
+                return 0;
             case NV_ENC_PARAMS_RC_CBR_LOWDELAY_HQ:
-                return "CBR_LOWDELAY_HQ";
+                return 1;
             case NV_ENC_PARAMS_RC_CONSTQP:
-                return "CONSTQP";
+                return 2;
             case NV_ENC_PARAMS_RC_CBR_HQ:
-                return "CBR_HQ";
+                return 3;
             case NV_ENC_PARAMS_RC_VBR:
-                return "VBR";
+                return 4;
             default:
-                return "CBR";
+                return 0;
             }
         }
-        NV_ENC_PARAMS_RC_MODE NvEncoder::GetRateControlMode(std::string mode)
+        NV_ENC_PARAMS_RC_MODE NvEncoder::GetRateControlMode(int mode)
         {
 
-            if (mode == "CBR") return NV_ENC_PARAMS_RC_CBR;
-            if (mode == "CBR_LOWDELAY_HQ") return NV_ENC_PARAMS_RC_CBR_LOWDELAY_HQ;
-            if (mode == "CONSTQP") return NV_ENC_PARAMS_RC_CONSTQP;
-            if (mode == "CBR_HQ") return NV_ENC_PARAMS_RC_CBR_HQ;
-            if (mode == "VBR") return NV_ENC_PARAMS_RC_VBR;
+            if (mode == 0) return NV_ENC_PARAMS_RC_CBR; // only minimum / average bitrate is used (no maxbitrate)
+            if (mode == 1 || mode == 10) return NV_ENC_PARAMS_RC_CBR_LOWDELAY_HQ; // ?
+            if (mode == 2 || mode == 20) return NV_ENC_PARAMS_RC_CONSTQP; // no min/max/average bitrate - only minQP and maxQP used
+            if (mode == 3 || mode == 30) return NV_ENC_PARAMS_RC_CBR_HQ; // ?
+            if (mode == 4 || mode == 40) return NV_ENC_PARAMS_RC_VBR; // uses minimum AND maximum bitrate
             return NV_ENC_PARAMS_RC_CBR;
         }
 

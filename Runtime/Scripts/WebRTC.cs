@@ -9,6 +9,7 @@ using UnityEngine.Rendering;
 
 namespace Unity.WebRTC
 {
+
     public enum EncoderType
     {
         Software = 0,
@@ -614,7 +615,7 @@ namespace Unity.WebRTC
         [DllImport(WebRTC.Lib)]
         public static extern RTCErrorType SenderSetParameters(IntPtr sender, IntPtr parameters);
         [DllImport(WebRTC.Lib)]
-        public static extern void SetHardwareParameters(IntPtr sender, IntPtr parameters);
+        public static extern void SetHardwareParameters(IntPtr parameters);
         [DllImport(WebRTC.Lib)]
         public static extern int DataChannelGetID(IntPtr ptr);
         [DllImport(WebRTC.Lib)]
@@ -719,6 +720,14 @@ namespace Unity.WebRTC
         public static extern IntPtr StatsMemberGetStringArray(IntPtr member, ref uint length);
     }
 
+    public static class HardwareEncoding
+    {
+        static void Set(IntPtr ptr)
+        {
+            NativeMethods.SetHardwareParameters(ptr);
+
+        }
+    }
     internal static class VideoEncoderMethods
     {
         static UnityEngine.Rendering.CommandBuffer _command = new UnityEngine.Rendering.CommandBuffer();

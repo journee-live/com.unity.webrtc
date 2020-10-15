@@ -2,11 +2,15 @@ using System;
 using System.Runtime.InteropServices;
 
 namespace Unity.WebRTC
-{
+{   
     public class RTCRtpSender
     {
         internal IntPtr self;
         private RTCPeerConnection peer;
+
+        public RTCRtpSender()
+        {
+        }
 
         internal RTCRtpSender(IntPtr ptr, RTCPeerConnection peer)
         {
@@ -44,6 +48,12 @@ namespace Unity.WebRTC
             RTCRtpSendParameters.DeletePtr(ptr);
 
             return error;
+        }
+        public void SetHardwareParameters(RTCRtpEncodingParametersInternal parameters)
+        {
+            IntPtr ptr = Marshal.AllocCoTaskMem(Marshal.SizeOf(parameters));
+            Marshal.StructureToPtr(parameters, ptr, false);
+            NativeMethods.SetHardwareParameters(ptr);
         }
     }
 }

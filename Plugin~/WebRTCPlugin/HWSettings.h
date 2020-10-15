@@ -14,7 +14,7 @@ namespace unity
             int maxBitrate;
             int minBitrate;
             int maxFramerate;
-            std::string rateControlMode;
+            int rateControlMode;
             int minQP ;
             int maxQP ;
             int width ;
@@ -23,6 +23,8 @@ namespace unity
             int intraRefreshPeriod ;
             int intraRefreshCount ;
             bool AQ;
+            int maxNumRefFrames;
+            bool GOP;
 
             bool b_maxBitrate;
             bool b_minBitrate;
@@ -36,6 +38,11 @@ namespace unity
             bool b_intraRefreshPeriod;
             bool b_intraRefreshCount;
             bool b_AQ;
+            bool b_maxNumRefFrames;
+            bool b_GOP;
+
+
+
 
 
             std::string msg;

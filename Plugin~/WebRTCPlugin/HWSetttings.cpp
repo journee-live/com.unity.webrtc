@@ -15,7 +15,9 @@ namespace unity {
 
 
         HWSettings::HWSettings() {
-            rateControlMode = "CBR";
+            minBitrate = 500000;
+            maxBitrate = 5000000;
+            rateControlMode = 0;
             minQP = 20;
             maxQP = 60;
             width = 1280;
@@ -24,6 +26,8 @@ namespace unity {
             intraRefreshPeriod = 30;
             intraRefreshCount = 10;
             AQ = true;
+            maxNumRefFrames = 0;
+            GOP = false;
 
             b_maxBitrate = false;
             b_minBitrate = false;
@@ -37,6 +41,8 @@ namespace unity {
             b_intraRefreshPeriod = false;
             b_intraRefreshCount = false;
             b_AQ = false;
+            b_maxNumRefFrames = false;
+            b_GOP = false;
         }
     }
 
