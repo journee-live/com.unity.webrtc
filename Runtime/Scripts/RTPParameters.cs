@@ -19,9 +19,14 @@ namespace Unity.WebRTC
 
         public string rateControlMode;
         public uint? minQP;
+        public uint? maxQP;
         public uint? width;
         public uint? height;
         public uint? minFramerate;
+        public uint? intraRefreshPeriod;
+        public uint? intraRefreshCount;
+
+        public bool AQ;
 
 
         internal RTCRtpEncodingParameters(RTCRtpEncodingParametersInternal parameter)
@@ -44,14 +49,20 @@ namespace Unity.WebRTC
 
             if (parameter.hasValueRateControlMode)
                 rateControlMode = parameter.rateControlMode;
+            if (parameter.hasValueMinFramerate)
+                minFramerate = parameter.minFramerate;
             if (parameter.hasValueWidth)
                 width = parameter.width;
             if (parameter.hasValueHeight)
                 height = parameter.height;
             if (parameter.hasValueMinQP)
                 minQP = parameter.minQP;
-            if (parameter.hasValueMinFramerate)
-                minFramerate = parameter.minFramerate;
+            if (parameter.hasValueMaxQP)
+                maxQP = parameter.maxQP;
+            if (parameter.hasValueIntraRefreshPeriod)
+                maxQP = parameter.intraRefreshPeriod;
+            if (parameter.hasValueIntraRefreshCount)
+                maxQP = parameter.intraRefreshCount;
         }
 
         internal void CopyInternal(ref RTCRtpEncodingParametersInternal instance)
@@ -80,6 +91,10 @@ namespace Unity.WebRTC
             if (rateControlMode.IsNullOrEmpty())
                 instance.rateControlMode = rateControlMode;
 
+            instance.hasValueMinFramerate = minFramerate.HasValue;
+            if (minFramerate.HasValue)
+                instance.minFramerate = minFramerate.Value;
+
             instance.hasValueWidth = width.HasValue;
             if (width.HasValue)
                 instance.width = width.Value;
@@ -92,9 +107,20 @@ namespace Unity.WebRTC
             if (minQP.HasValue)
                 instance.minQP = minQP.Value;
 
-            instance.hasValueMinFramerate = minFramerate.HasValue;
-            if (minFramerate.HasValue)
-                instance.minFramerate = minFramerate.Value;
+            instance.hasValueMaxQP = maxQP.HasValue;
+            if (maxQP.HasValue)
+                instance.maxQP = maxQP.Value;
+                
+            instance.hasValueIntraRefreshPeriod = intraRefreshPeriod.HasValue;
+            if (intraRefreshPeriod.HasValue)
+                instance.intraRefreshPeriod = intraRefreshPeriod.Value;
+
+            instance.hasValueIntraRefreshCount = intraRefreshCount.HasValue;
+            if (intraRefreshCount.HasValue)
+                instance.intraRefreshCount = intraRefreshCount.Value;
+
+            instance.AQ = AQ;
+
 
 
             instance.rid = string.IsNullOrEmpty(rid) ? IntPtr.Zero : Marshal.StringToCoTaskMemAnsi(rid);
@@ -177,6 +203,9 @@ namespace Unity.WebRTC
         public bool hasValueRateControlMode;
         public string rateControlMode;
         [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueMinFramerate;
+        public uint minFramerate;
+        [MarshalAs(UnmanagedType.U1)]
         public bool hasValueWidth;
         public uint width;
         [MarshalAs(UnmanagedType.U1)]
@@ -186,8 +215,16 @@ namespace Unity.WebRTC
         public bool hasValueMinQP;
         public uint minQP;
         [MarshalAs(UnmanagedType.U1)]
-        public bool hasValueMinFramerate;
-        public uint minFramerate;
+        public bool hasValueMaxQP;
+        public uint maxQP;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueIntraRefreshPeriod;
+        public uint intraRefreshPeriod;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueIntraRefreshCount;
+        public uint intraRefreshCount;
+
+        public bool AQ;
 
         public IntPtr rid;
     }
