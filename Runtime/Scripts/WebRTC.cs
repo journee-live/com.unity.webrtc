@@ -617,6 +617,8 @@ namespace Unity.WebRTC
         [DllImport(WebRTC.Lib)]
         public static extern RTCErrorType SenderSetParameters(IntPtr sender, IntPtr parameters);
         [DllImport(WebRTC.Lib)]
+        public static extern RTCErrorType SetHardwareParameters(IntPtr sender, IntPtr parameters);
+        [DllImport(WebRTC.Lib)]
         public static extern IntPtr ReceiverGetTrack(IntPtr receiver);
         [DllImport(WebRTC.Lib)]
         public static extern int DataChannelGetID(IntPtr ptr);

@@ -767,46 +767,57 @@ extern "C"
         *parameters = dst;
     }
 
-    UNITY_INTERFACE_EXPORT RTCErrorType SenderSetParameters(RtpSenderInterface* sender, const RTCRtpSendParameters* src)
-    {
-        RtpParameters dst = sender->GetParameters();
+    UNITY_INTERFACE_EXPORT void SetHardwareParameters(RtpSenderInterface* sender, const RTCRtpSendParameters* src) {
+
         HWSettings* hw = HWSettings::getPtr();
+        RtpParameters dst = sender->GetParameters();
 
         for (int i = 0; i < dst.encodings.size(); i++)
         {
-            dst.encodings[i].active = src->encodings[i].active;
-            if(src->encodings[i].hasValueMaxBitrate)
-                dst.encodings[i].max_bitrate_bps = static_cast<int>(src->encodings[i].maxBitrate);
+            if (src->encodings[i].hasValueMaxBitrate)
                 hw->maxBitrate = static_cast<int>(src->encodings[i].maxBitrate);
             if (src->encodings[i].hasValueMinBitrate)
-                dst.encodings[i].min_bitrate_bps = static_cast<int>(src->encodings[i].minBitrate);
                 hw->minBitrate = static_cast<int>(src->encodings[i].minBitrate);
             if (src->encodings[i].hasValueMaxFramerate)
-                dst.encodings[i].max_framerate = static_cast<int>(src->encodings[i].maxFramerate);
                 hw->maxFramerate = static_cast<int>(src->encodings[i].maxFramerate);
-            if (src->encodings[i].hasValueScaleResolutionDownBy)
-                dst.encodings[i].scale_resolution_down_by = static_cast<double>(src->encodings[i].scaleResolutionDownBy);
-            if(src->encodings[i].rid != nullptr && src->encodings[i].rid != NULL)
-                dst.encodings[i].rid = std::string(src->encodings[i].rid);
 
             // [autr] newly added parameters for NVIDIA SDK
 
-            if(src->encodings[i].hasValueRateControlMode)
+            if (src->encodings[i].hasValueRateControlMode)
                 hw->rateControlMode = static_cast<std::string>(src->encodings[i].rateControlMode);
-            if(src->encodings[i].hasValueWidth)
+            if (src->encodings[i].hasValueWidth)
                 hw->width = static_cast<int>(src->encodings[i].width);
-            if(src->encodings[i].hasValueHeight)
+            if (src->encodings[i].hasValueHeight)
                 hw->height = static_cast<int>(src->encodings[i].height);
-            if(src->encodings[i].hasValueMinQP)
+            if (src->encodings[i].hasValueMinQP)
                 hw->minQP = static_cast<int>(src->encodings[i].minQP);
-            if(src->encodings[i].hasValueMinFramerate)
+            if (src->encodings[i].hasValueMinFramerate)
                 hw->minFramerate = static_cast<int>(src->encodings[i].minFramerate);
 
-            hw->msg = "[SenderSetParameters] params set...";
+            hw->msg = "[WebRTCPlugin.cpp] parameters set";
+            DebugLog("[WebRTCPlugin.cpp] parameters set");
         }
+    }
 
 
+    UNITY_INTERFACE_EXPORT RTCErrorType SenderSetParameters(RtpSenderInterface* sender, const RTCRtpSendParameters* src)
+    {
+        RtpParameters dst = sender->GetParameters();
 
+        for (size_t i = 0; i < dst.encodings.size(); i++)
+        {
+            dst.encodings[i].active = src->encodings[i].active;
+            if (src->encodings[i].hasValueMaxBitrate)
+                dst.encodings[i].max_bitrate_bps = static_cast<int>(src->encodings[i].maxBitrate);
+            if (src->encodings[i].hasValueMinBitrate)
+                dst.encodings[i].min_bitrate_bps = static_cast<int>(src->encodings[i].minBitrate);
+            if (src->encodings[i].hasValueMaxFramerate)
+                dst.encodings[i].max_framerate = static_cast<int>(src->encodings[i].maxFramerate);
+            if (src->encodings[i].hasValueScaleResolutionDownBy)
+                dst.encodings[i].scale_resolution_down_by = src->encodings[i].scaleResolutionDownBy;
+            if (src->encodings[i].rid != nullptr)
+                dst.encodings[i].rid = std::string(src->encodings[i].rid);
+        }
         const ::webrtc::RTCError error = sender->SetParameters(dst);
         return error.type();
     }

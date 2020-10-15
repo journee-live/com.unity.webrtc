@@ -45,5 +45,13 @@ namespace Unity.WebRTC
 
             return error;
         }
+        public RTCErrorType SetHardwareParameters(RTCRtpSendParameters parameters)
+        {
+            IntPtr ptr = parameters.CreatePtr();
+            RTCErrorType error = NativeMethods.SetHardwareParameters(self, ptr);
+            RTCRtpSendParameters.DeletePtr(ptr);
+
+            return error;
+        }
     }
 }

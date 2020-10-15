@@ -73,15 +73,7 @@ namespace webrtc
         nvEncInitializeParams.darWidth = m_width;
         nvEncInitializeParams.darHeight = m_height;
         nvEncInitializeParams.encodeGUID = NV_ENC_CODEC_H264_GUID;
-        nvEncInitializeParams.presetGUID = NV_ENC_PRESET_LOW_LATENCY_HP_GUID; // switch to HP
-
-
-        // Performance numbers: http://developer.download.nvidia.com/compute/nvenc/v4.0/NVENC_AppNote.pdf
-        // NV_ENC_PRESET_LOW_LATENCY_HQ_GUID
-        // NV_ENC_PRESET_LOW_LATENCY_HP_GUID
-        // NV_ENC_PRESET_LOW_LATENCY_DEFAULT_GUID
-
-
+        nvEncInitializeParams.presetGUID = NV_ENC_PRESET_LOW_LATENCY_HP_GUID; // [autr] switch to HP
         nvEncInitializeParams.frameRateNum = m_frameRate;
         nvEncInitializeParams.frameRateDen = 1;
         nvEncInitializeParams.enablePTD = 1;
@@ -99,22 +91,54 @@ namespace webrtc
         checkf(NV_RESULT(errorCode), StringFormat("Failed to select NVEncoder preset config %d", errorCode).c_str());
         std::memcpy(&nvEncConfig, &presetConfig.presetCfg, sizeof(NV_ENC_CONFIG));
         nvEncConfig.profileGUID = NV_ENC_H264_PROFILE_BASELINE_GUID;
+        nvEncConfig.gopLength = nvEncInitializeParams.frameRateNum;
+        nvEncConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CBR; // [autr] default CBR
 
+        nvEncConfig.rcParams.averageBitRate =
+            (static_cast<unsigned int>(5.0f *
+            nvEncInitializeParams.encodeWidth *
+            nvEncInitializeParams.encodeHeight) / (m_width * m_height)) * 100000;
+        nvEncConfig.encodeCodecConfig.h264Config.idrPeriod = nvEncConfig.gopLength;
 
-        nvEncConfig.frameIntervalP = 1;
-        nvEncConfig.gopLength = m_frameRate;
-        nvEncConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CBR2;
+        nvEncConfig.encodeCodecConfig.h264Config.sliceMode = 0;
+        nvEncConfig.encodeCodecConfig.h264Config.sliceModeData = 0;
+        nvEncConfig.encodeCodecConfig.h264Config.repeatSPSPPS = 1;
+        //Quality Control
+        nvEncConfig.encodeCodecConfig.h264Config.level = NV_ENC_LEVEL_H264_51;
 
-       // NV_ENC_PARAMS_RC_CBR2
-       // NV_ENC_PARAMS_RC_CBR
-       // NV_ENC_PARAMS_RC_2_PASS_FRAMESIZE_CAP
-       // NV_ENC_PARAMS_RC_VBR
-       // NV_ENC_PARAMS_RC_2_PASS_QUALITY
+		// [autr] begin...
+
+        // Intra Refresh causes consecutive sections of the frames to be encoded using intra macroblocks, over intraRefreshCnt consecutive frames.Then the whole cycle repeats after intraRefreshPeriod frames from the first intra - refresh frame. It is essential to set intraRefreshPeriod and intraRefreshCnt appropriately based on the probability of errors that may occur during transmission. For example, intraRefreshPeriod may be small like 30 for a highly error prone network thus enabling recovery every second for a 30 FPS video stream.For networks that have lesser chances of error, the value may be set higher.Lower value of intraRefreshPeriod comes with a slightly lower quality as a larger portion of the overall macroblocks in an intra refresh period are forced to be intra coded, but provides faster recovery from network errors.
+
+        // intraRefreshCnt determines the number of frames over which the intra refresh will happen within an intra refresh period. A smaller value of intraRefreshCnt will refresh the entire frame quickly(instead of refreshing it slowly in bands) and hence enable a faster error recovery. However, a lower intraRefreshCnt also means sending a larger number of intra macroblocks per frameand hence slightly lower quality.
+
+        // Low - latency use cases like game - streaming, video conferencing etc.
+
+        //    Ultra - low latency or low latency Tuning Info
+        //    Rate control mode = CBR
+        //    Multi Pass – Quarter / Full(evaluate and decide)
+        //    Very low VBV buffer size(e.g.single frame = bitrate / framerate)
+        //    No B Frames
+        //    Infinite GOP length
+        //    Adaptive quantization(AQ) enabled * *
+        //    Long term reference pictures * **
+        //    Intra refresh * **
+        //    Non - reference P frames * **
+        //    Force IDR *
+
+        // Error Recovery Settings: infra frame refreshing
+
+        nvEncConfig.encodeCodecConfig.h264Config.enableIntraRefresh = 1;
+        nvEncConfig.encodeCodecConfig.h264Config.intraRefreshPeriod = 30;
+        nvEncConfig.encodeCodecConfig.h264Config.intraRefreshCnt = 10;
+
+        // Error Recovery Settings: adaptive quantization
 
         nvEncConfig.rcParams.enableAQ = 1;
         nvEncConfig.encodeCodecConfig.h264Config.maxNumRefFrames = 60;
-        nvEncConfig.encodeCodecConfig.h264Config.enableIntraRefresh = 1;
-        nvEncConfig.encodeCodecConfig.h264Config.idrPeriod = m_frameRate;
+
+        // Error Recovery Settings: long term reference
+
         //nvEncConfig.encodeCodecConfig.h264Config.enableLTR = 1;
         //nvEncConfig.encodeCodecConfig.h264Config.ltrTrustMode = 1;
         //nvEncConfig.encodeCodecConfig.h264Config.ltrNumFrames = 8;
@@ -122,16 +146,6 @@ namespace webrtc
         // https://docs.nvidia.com/video-technologies/video-codec-sdk/nvenc-video-encoder-api-prog-guide/index.html
         // http://developer.download.nvidia.com/compute/nvenc/v4.0/NVENC_AppNote.pdf
 
-        nvEncConfig.rcParams.averageBitRate =
-            (static_cast<unsigned int>(5.0f *
-            nvEncInitializeParams.encodeWidth *
-            nvEncInitializeParams.encodeHeight) / (m_width * m_height)) * 100000;
-
-        nvEncConfig.encodeCodecConfig.h264Config.sliceMode = 0;
-        nvEncConfig.encodeCodecConfig.h264Config.sliceModeData = 0;
-        nvEncConfig.encodeCodecConfig.h264Config.repeatSPSPPS = 1;
-        //Quality Control
-        nvEncConfig.encodeCodecConfig.h264Config.level = NV_ENC_LEVEL_H264_51;
 #pragma endregion
 
         // syncronise hardware settings obj
@@ -149,6 +163,8 @@ namespace webrtc
 
 
 
+		// [/autr] end.
+
 #pragma region get encoder capability
         NV_ENC_CAPS_PARAM capsParam = { 0 };
         capsParam.version = NV_ENC_CAPS_PARAM_VER;
@@ -165,7 +181,6 @@ namespace webrtc
 #pragma endregion
         InitEncoderResources();
         m_isNvEncoderSupported = true;
-        //pNvEncodeAPI->nvEncReconfigureEncoder
     }
 
     NvEncoder::~NvEncoder()
@@ -264,54 +279,23 @@ namespace webrtc
 
     void NvEncoder::UpdateSettings()
     {
-        HWSettings* hw = HWSettings::getPtr();
         bool settingChanged = false;
-        std::string u;
-        if (nvEncConfig.rcParams.averageBitRate != hw->minBitrate)
+
+        if (nvEncConfig.rcParams.averageBitRate != m_targetBitrate)
         {
-            u = "minBitrate/averageBitrate";
-            nvEncConfig.rcParams.averageBitRate = hw->minBitrate;
+            nvEncConfig.rcParams.averageBitRate = m_targetBitrate;
             settingChanged = true;
         }
-        /*if (nvEncConfig.rcParams.maxBitRate != hw->maxBitrate)
+        if (nvEncInitializeParams.frameRateNum != m_frameRate)
         {
-            u = "maxBitrate";
-            nvEncConfig.rcParams.averageBitRate = hw->maxBitrate;
-            settingChanged = true;
-        }*/
-        if (nvEncInitializeParams.frameRateNum != hw->minFramerate)
-        {
-            u = "minFramerate";
             // nvcodec do not allow a framerate over 240
             const uint32_t kMaxFramerate = 240;
-            uint32_t targetFramerate = std::min((uint32_t)hw->minFramerate, kMaxFramerate);
-            nvEncInitializeParams.frameRateNum = hw->minFramerate;
+            uint32_t targetFramerate = std::min(m_frameRate, kMaxFramerate);
+            nvEncInitializeParams.frameRateNum = targetFramerate;
             settingChanged = true;
         }
-        //if (nvEncInitializeParams.encodeWidth != hw->width)
-        //{
-        //    u = "width";
-        //    nvEncInitializeParams.encodeWidth = hw->width;
-        //    nvEncInitializeParams.darWidth = hw->width;
-        //    settingChanged = true;
-        //}
-        //if (nvEncInitializeParams.encodeHeight != hw->height)
-        //{
-        //    u = "height";
-        //    nvEncInitializeParams.encodeHeight = hw->height;
-        //    nvEncInitializeParams.darHeight = hw->height;
-        //    settingChanged = true;
-        //}
-        //if (nvEncConfig.rcParams.minQP.qpIntra != hw->minQP)
-        //{
-        //    u = "minQP";
-        //    nvEncConfig.rcParams.minQP.qpIntra = nvEncConfig.rcParams.minQP.qpInterP = nvEncConfig.rcParams.minQP.qpInterB = hw->minQP;
-        //    settingChanged = true;
-        //}
-
         if (settingChanged)
         {
-            std::string updated = u + " updated";
             NV_ENC_RECONFIGURE_PARAMS nvEncReconfigureParams;
             std::memcpy(&nvEncReconfigureParams.reInitEncodeParams, &nvEncInitializeParams, sizeof(nvEncInitializeParams));
             nvEncReconfigureParams.version = NV_ENC_RECONFIGURE_PARAMS_VER;
@@ -326,10 +310,14 @@ namespace webrtc
         m_frameRate = frameRate;
         m_targetBitrate = bitRate;
 
+		// [autr] begin...
+
         HWSettings* hw = HWSettings::getPtr();
         hw->minFramerate = (int)frameRate;
         hw->minBitrate = (int)bitRate;
 
+		// [/autr] end.
+		
         isIdrFrame = true;
     }
 
@@ -363,7 +351,7 @@ namespace webrtc
 #pragma region start encoding
         if (isIdrFrame)
         {
-            picParams.encodePicFlags |= NV_ENC_PIC_FLAG_FORCEIDR;
+            picParams.encodePicFlags |= NV_ENC_PIC_FLAG_FORCEIDR; // [autr] fix (no intras)
             isIdrFrame = false;
         }
         errorCode = pNvEncodeAPI->nvEncEncodePicture(pEncoderInterface, &picParams);
@@ -560,14 +548,20 @@ namespace webrtc
                 return 0;
         }
     }
+    
+    // [autr] begin...
 
     std::string NvEncoder::GetRateControlString(const NV_ENC_PARAMS_RC_MODE mode)
     {
         switch (mode) {
-        case NV_ENC_PARAMS_RC_CONSTQP:
-            return "CBRQP";
         case NV_ENC_PARAMS_RC_CBR:
             return "CBR";
+        case NV_ENC_PARAMS_RC_CBR_LOWDELAY_HQ:
+            return "CBR_LOWDELAY_HQ";
+        case NV_ENC_PARAMS_RC_CONSTQP:
+            return "CONSTQP";
+        case NV_ENC_PARAMS_RC_CBR_HQ:
+            return "CBR_HQ";
         case NV_ENC_PARAMS_RC_VBR:
             return "VBR";
         default:
@@ -576,11 +570,16 @@ namespace webrtc
     }
     NV_ENC_PARAMS_RC_MODE NvEncoder::GetRateControlMode(std::string mode)
     {
-        if (mode == "CBRQP") return NV_ENC_PARAMS_RC_CONSTQP;
+
         if (mode == "CBR") return NV_ENC_PARAMS_RC_CBR;
+        if (mode == "CBR_LOWDELAY_HQ") return NV_ENC_PARAMS_RC_CBR_LOWDELAY_HQ;
+        if (mode == "CONSTQP") return NV_ENC_PARAMS_RC_CONSTQP;
+        if (mode == "CBR_HQ") return NV_ENC_PARAMS_RC_CBR_HQ;
         if (mode == "VBR") return NV_ENC_PARAMS_RC_VBR;
         return NV_ENC_PARAMS_RC_CBR;
     }
+    
+    // [/autr] end.
     
 } // end namespace webrtc
 } // end namespace unity
