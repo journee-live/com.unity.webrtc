@@ -17,13 +17,11 @@
 
 #include "SoftwareCodec/SoftwareEncoder.h"
 
+#if !defined(UNITY_OSX)
 #include "NvCodec/NvEncoderCuda.h"
-
+#endif
 
 #include "GraphicsDevice/IGraphicsDevice.h"
-#if defined(SUPPORT_METAL)
-#include "VideoToolbox/VTEncoderMetal.h"
-#endif
 
 namespace unity
 {
@@ -80,7 +78,13 @@ namespace webrtc
 #endif
 #if defined(SUPPORT_VULKAN)
             case GRAPHICS_DEVICE_VULKAN: {
-                encoder = std::make_unique<NvEncoderCuda>(width, height, device);
+                if (encoderType == UnityEncoderType::UnityEncoderHardware)
+                {
+                    encoder = std::make_unique<NvEncoderCuda>(width, height, device);
+                }
+                else {
+                    encoder = std::make_unique<SoftwareEncoder>(width, height, device);
+                }
                 break;
             }
 #endif            

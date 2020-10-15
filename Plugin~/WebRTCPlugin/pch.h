@@ -15,6 +15,7 @@
 #include "api/video_codecs/sdp_video_format.h"
 #include "api/video/video_frame.h"
 #include "api/video/video_frame_buffer.h"
+#include "api/video/video_sink_interface.h"
 #include "api/video/i420_buffer.h"
 #include "api/video_track_source_proxy.h"
 
@@ -55,6 +56,8 @@
 #include "modules/audio_device/audio_device_generic.h"
 #include "modules/audio_processing/include/audio_processing.h"
 #include "modules/video_coding/codecs/h264/include/h264.h"
+#include "modules/video_coding/codecs/vp8/include/vp8.h"
+#include "modules/video_coding/codecs/vp9/include/vp9.h"
 
 #include "common_video/h264/h264_bitstream_parser.h"
 #include "common_video/h264/h264_common.h"
@@ -127,6 +130,14 @@ namespace webrtc
         snprintf(buf.get(), size, format.c_str(), args ...);
         return std::string(buf.get(), buf.get() + size - 1);
     }
+
+    template<class T>
+    T** ConvertPtrArrayFromRefPtrArray(
+        std::vector<rtc::scoped_refptr<T>> vec, size_t* length);
+    template<typename T>
+    T* ConvertArray(std::vector<T> vec, size_t* length);
+    bool* ConvertArray(std::vector<bool> vec, size_t* length);
+    char* ConvertString(const std::string str);
 
     using byte = unsigned char;
     using uint8 = unsigned char;

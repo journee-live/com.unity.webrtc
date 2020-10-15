@@ -37,12 +37,12 @@ if(MSVC)
   list (APPEND sources ${append_source})
 elseif(APPLE)
   file(GLOB append_source
+    ../libcxx/debug.cpp
+    *.mm
     GraphicsDevice/Metal/*.h
     GraphicsDevice/Metal/*.mm
     Codec/SoftwareCodec/*.h
     Codec/SoftwareCodec/*.cpp
-    #Codec/VideoToolbox/VTEncoderMetal.mm
-    #Codec/VideoToolbox/VTEncoderMetal.h
   )
   list (APPEND sources ${append_source})
 elseif(UNIX)
@@ -53,6 +53,8 @@ elseif(UNIX)
     GraphicsDevice/Vulkan/*.cpp
     GraphicsDevice/Vulkan/Cuda/*.h
     GraphicsDevice/Vulkan/Cuda/*.cpp
+    Codec/SoftwareCodec/*.h
+    Codec/SoftwareCodec/*.cpp
     Codec/NvCodec/NvEncoder.cpp
     Codec/NvCodec/NvEncoder.h
     Codec/NvCodec/NvEncoderGL.cpp
@@ -88,10 +90,10 @@ endif()
 
 if(MSVC)
   # Use precompiled header
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /Yu /Yupch.h")
-  set(CMAKE_CXX_FLAGS_RELEASE "${CMAKE_CXX_FLAGS_RELEASE} /MT /Zi")
-  set(CMAKE_CXX_FLAGS_DEBUG "${CMAKE_CXX_FLAGS_DEBUG} /MT /Zi")
-  set(PROJECT_BINARY_DIR "${CMAKE_SOURCE_DIR}/../Runtime/Plugins/x86_64")
+  set(CMAKE_CXX_FLAGS 
+    "${CMAKE_CXX_FLAGS} /Yu /Yupch.h")
+  set(PROJECT_BINARY_DIR 
+    "${CMAKE_SOURCE_DIR}/../Runtime/Plugins/x86_64")
 
   target_compile_definitions(webrtc
     PRIVATE
@@ -100,9 +102,10 @@ if(MSVC)
   )
   target_link_libraries(webrtc
     PRIVATE
-      ${WEBRTC_LIBRARIES}
+      ${WEBRTC_LIBRARY}
       ${Vulkan_LIBRARY}
       ${CUDA_CUDA_LIBRARY}
+      ${NVCODEC_LIBRARIES}
       d3d11
       winmm
       Secur32
@@ -114,12 +117,13 @@ if(MSVC)
     PRIVATE
       ${CUDA_INCLUDE_DIRS}
       ${Vulkan_INCLUDE_DIR}
+      ${NVCODEC_INCLUDE_DIR}
   )
 
   # Set linker option
   set_target_properties( webrtc 
     PROPERTIES LINK_FLAGS 
-      "/DEBUG /SUBSYSTEM:WINDOWS /DELAYLOAD:nvcuda.dll /DELAYLOAD:vulkan-1.dll"
+      "/SUBSYSTEM:WINDOWS /DELAYLOAD:nvcuda.dll /DELAYLOAD:vulkan-1.dll"
   )
 
   # Change output directory for shared library
@@ -152,7 +156,7 @@ elseif(APPLE)
   )
   target_link_libraries(webrtc
     PRIVATE
-      ${WEBRTC_LIBRARIES}
+      ${WEBRTC_LIBRARY}
       ${OPENGL_LIBRARIES}
       ${FRAMEWORK_LIBS}
   )
@@ -164,7 +168,15 @@ elseif(APPLE)
     PROPERTIES LIBRARY_OUTPUT_DIRECTORY_RELEASE 
       ${PROJECT_BINARY_DIR}
   )
+  target_include_directories(webrtc
+    PRIVATE
+      ${WEBRTC_OBJC_INCLUDE_DIR}
+  )
 
+  set_target_properties( webrtc 
+    PROPERTIES LINK_FLAGS 
+      "-ObjC"
+  )  
 elseif(UNIX)
   set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fno-lto -fno-rtti -stdlib=libc++")
 
@@ -175,15 +187,17 @@ elseif(UNIX)
   )
   target_link_libraries(webrtc
     PRIVATE
-      ${WEBRTC_LIBRARIES}
+      ${WEBRTC_LIBRARY}
       ${OPENGL_opengl_LIBRARY}
       ${Vulkan_LIBRARY}
+      ${NVCODEC_LIBRARIES}
       cuda
   )
   target_include_directories(webrtc
     PRIVATE
       ${CUDA_INCLUDE_DIRS}
       ${Vulkan_INCLUDE_DIR}
+      ${NVCODEC_INCLUDE_DIR}
   )
 endif()
 

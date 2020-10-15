@@ -6,6 +6,11 @@
 #include "Context.h"
 #include "Codec/EncoderFactory.h"
 #include "HWSettings.h"
+#include "GraphicsDevice/GraphicsUtility.h"
+
+#if defined(SUPPORT_VULKAN)
+#include "GraphicsDevice/Vulkan/VulkanGraphicsDevice.h"
+#endif
 
 namespace unity
 {
@@ -19,10 +24,7 @@ namespace webrtc
     {
         if (delegateDebugLog != nullptr)
         {
-            if(rtc::ThreadManager::Instance()->IsMainThread())
-            {
-                delegateDebugLog(buf);
-            }
+            delegateDebugLog(buf);
         }
     }
 
@@ -33,58 +35,59 @@ namespace webrtc
             delegateSetResolution(width, length);
         }
     }
-    
+
+    template<class T>
+    T** ConvertPtrArrayFromRefPtrArray(
+        std::vector<rtc::scoped_refptr<T>> vec, size_t* length)
+    {
+        *length = vec.size();
+        const auto buf = CoTaskMemAlloc(sizeof(T*) * vec.size());
+        const auto ret = static_cast<T**>(buf);
+        std::copy(vec.begin(), vec.end(), ret);
+        return ret;
+    }
+
+    template<typename T>
+    T* ConvertArray(std::vector<T> vec, size_t* length)
+    {
+        *length = vec.size();
+        size_t size = sizeof(T*) * vec.size();
+        auto dst = CoTaskMemAlloc(size);
+        auto src = vec.data();
+        std::memcpy(dst, src, size);
+        return static_cast<T*>(dst);
+    }
+
+    ///
+    /// avoid compile erorr for vector<bool>
+    /// https://en.cppreference.com/w/cpp/container/vector_bool
+    bool* ConvertArray(std::vector<bool> vec, size_t* length)
+    {
+        *length = vec.size();
+        size_t size = sizeof(bool*) * vec.size();
+        auto dst = CoTaskMemAlloc(size);
+        bool* ret = static_cast<bool*>(dst);
+        for (size_t i = 0; i < vec.size(); i++)
+        {
+            ret[i] = vec[i];
+        }
+        return ret;
+    }
+
+    char* ConvertString(const std::string str)
+    {
+        const size_t size = str.size();
+        char* ret = static_cast<char*>(CoTaskMemAlloc(size + sizeof(char)));
+        str.copy(ret, size);
+        ret[size] = '\0';
+        return ret;
+    }
+
 } // end namespace webrtc
 } // end namespace unity
 
 using namespace unity::webrtc;
 using namespace ::webrtc;
-
-template<class T>
-T** ConvertPtrArrayFromRefPtrArray(std::vector<rtc::scoped_refptr<T>> vec, size_t* length)
-{
-    *length = vec.size();
-    const auto buf = CoTaskMemAlloc(sizeof(T*) * vec.size());
-    const auto ret = static_cast<T**>(buf);
-    std::copy(vec.begin(), vec.end(), ret);
-    return ret;
-}
-
-template<typename T>
-T* ConvertArray(std::vector<T> vec, size_t* length)
-{
-    *length = vec.size();
-    size_t size = sizeof(T*) * vec.size();
-    auto dst = CoTaskMemAlloc(size);
-    auto src = vec.data();
-    std::memcpy(dst, src, size);
-    return static_cast<T*>(dst);
-}
-
-///
-/// avoid compile erorr for vector<bool>
-/// https://en.cppreference.com/w/cpp/container/vector_bool
-bool* ConvertArray(std::vector<bool> vec, size_t* length)
-{
-    *length = vec.size();
-    size_t size = sizeof(bool*) * vec.size();
-    auto dst = CoTaskMemAlloc(size);
-    bool* ret = static_cast<bool*>(dst);
-    for (size_t i = 0; i < vec.size(); i++)
-    {
-        ret[i] = vec[i];
-    }
-    return ret;
-}
-
-char* ConvertString(const std::string str)
-{
-    const size_t size = str.size();
-    char* ret = static_cast<char*>(CoTaskMemAlloc(size + sizeof(char)));
-    str.copy(ret, size);
-    ret[size] = '\0';
-    return ret;
-}
 
 extern "C"
 {
@@ -118,9 +121,21 @@ extern "C"
         context->DeleteMediaStream(stream);
     }
 
-    UNITY_INTERFACE_EXPORT::webrtc::MediaStreamTrackInterface* ContextCreateVideoTrack(Context* context, const char* label, void* rt, int32 width, int32 height)
+    UNITY_INTERFACE_EXPORT MediaStreamTrackInterface* ContextCreateVideoTrack(Context* context, const char* label, void* rt)
     {
-        return context->CreateVideoTrack(label, rt);
+        UnityGfxRenderer gfxRenderer = GraphicsUtility::GetGfxRenderer();
+#if defined(SUPPORT_VULKAN)
+        if(gfxRenderer == kUnityGfxRendererVulkan)
+        {
+            void* frame = nullptr;
+            VulkanGraphicsDevice* device =
+                static_cast<VulkanGraphicsDevice*>(GraphicsUtility::GetGraphicsDevice());
+            const std::unique_ptr<UnityVulkanImage> unityVulkanImage =
+                device->AccessTexture(rt);
+            return context->CreateVideoTrack(label, unityVulkanImage.get(), gfxRenderer);
+        }
+#endif
+        return context->CreateVideoTrack(label, rt, gfxRenderer);
     }
 
     UNITY_INTERFACE_EXPORT void ContextDeleteMediaStreamTrack(Context* context, ::webrtc::MediaStreamTrackInterface* track)
@@ -219,6 +234,31 @@ extern "C"
         track->set_enabled(enabled);
     }
 
+    UNITY_INTERFACE_EXPORT UnityVideoRenderer* CreateVideoRenderer(Context* context)
+    {
+        return context->CreateVideoRenderer();
+    }
+
+    UNITY_INTERFACE_EXPORT uint32_t GetVideoRendererId(UnityVideoRenderer* sink)
+    {
+        return sink->GetId();
+    }
+
+    UNITY_INTERFACE_EXPORT void DeleteVideoRenderer(Context* context, UnityVideoRenderer* sink)
+    {
+        context->DeleteVideoRenderer(sink);
+    }
+
+    UNITY_INTERFACE_EXPORT void VideoTrackAddOrUpdateSink(VideoTrackInterface* track, UnityVideoRenderer* sink)
+    {
+        track->AddOrUpdateSink(sink, rtc::VideoSinkWants());
+    }
+
+    UNITY_INTERFACE_EXPORT void VideoTrackRemoveSink(VideoTrackInterface* track, UnityVideoRenderer* sink)
+    {
+        track->RemoveSink(sink);
+    }
+
     UNITY_INTERFACE_EXPORT void RegisterDebugLog(DelegateDebugLog func)
     {
         delegateDebugLog = func;
@@ -295,6 +335,16 @@ extern "C"
         return obj->connection->AddTransceiver(track, *init).value().get();
     }
 
+    UNITY_INTERFACE_EXPORT RtpTransceiverInterface* PeerConnectionAddTransceiverWithType(PeerConnectionObject* obj, cricket::MediaType type)
+    {
+        return obj->connection->AddTransceiver(type).value().get();
+    }
+
+    UNITY_INTERFACE_EXPORT RtpTransceiverInterface* PeerConnectionAddTransceiverWithTypeAndInit(PeerConnectionObject* obj, cricket::MediaType type, RtpTransceiverInit* init)
+    {
+        return obj->connection->AddTransceiver(type, *init).value().get();
+    }
+
     UNITY_INTERFACE_EXPORT void PeerConnectionRemoveTrack(PeerConnectionObject* obj, RtpSenderInterface* sender)
     {
         obj->connection->RemoveTrack(sender);
@@ -309,11 +359,6 @@ extern "C"
     {
         const std::string str = obj->GetConfiguration();
         return ConvertString(str);
-    }
-
-    UNITY_INTERFACE_EXPORT void PeerConnectionSetRemoteDescription(Context* context, PeerConnectionObject* obj, const RTCSessionDescription* desc)
-    {
-        obj->SetRemoteDescription(*desc, context->GetObserver(obj->connection));
     }
 
     UNITY_INTERFACE_EXPORT void PeerConnectionGetStats(PeerConnectionObject* obj)
@@ -408,6 +453,11 @@ extern "C"
         return ConvertArray(stats->Members(), length);
     }
 
+    UNITY_INTERFACE_EXPORT bool StatsMemberIsDefined(const RTCStatsMemberInterface* member)
+    {
+        return member->is_defined();
+    }
+
     UNITY_INTERFACE_EXPORT const char* StatsMemberGetName(const RTCStatsMemberInterface* member)
     {
         return ConvertString(std::string(member->name()));
@@ -491,9 +541,16 @@ extern "C"
         return member->type();
     }
 
-    UNITY_INTERFACE_EXPORT void PeerConnectionSetLocalDescription(Context* context, PeerConnectionObject* obj, const RTCSessionDescription* desc)
+    UNITY_INTERFACE_EXPORT RTCErrorType PeerConnectionSetLocalDescription(
+        Context* context, PeerConnectionObject* obj, const RTCSessionDescription* desc, char* error[])
     {
-        obj->SetLocalDescription(*desc, context->GetObserver(obj->connection));
+        return obj->SetLocalDescription(*desc, context->GetObserver(obj->connection), error);
+    }
+    
+    UNITY_INTERFACE_EXPORT RTCErrorType PeerConnectionSetRemoteDescription(
+        Context* context, PeerConnectionObject* obj, const RTCSessionDescription* desc, char* error[])
+    {
+        return obj->SetRemoteDescription(*desc, context->GetObserver(obj->connection), error);
     }
 
     UNITY_INTERFACE_EXPORT bool PeerConnectionGetLocalDescription(PeerConnectionObject* obj, RTCSessionDescription* desc)
@@ -624,10 +681,6 @@ extern "C"
     UNITY_INTERFACE_EXPORT void PeerConnectionRegisterOnTrack(PeerConnectionObject* obj, DelegateOnTrack callback)
     {
         obj->RegisterOnTrack(callback);
-    }
-    UNITY_INTERFACE_EXPORT MediaStreamTrackInterface* TransceiverGetTrack(RtpTransceiverInterface* transceiver)
-    {
-        return transceiver->receiver()->track().get();
     }
 
     UNITY_INTERFACE_EXPORT bool TransceiverGetCurrentDirection(RtpTransceiverInterface* transceiver, RtpTransceiverDirection* direction)
@@ -760,7 +813,12 @@ extern "C"
 
     UNITY_INTERFACE_EXPORT MediaStreamTrackInterface* SenderGetTrack(RtpSenderInterface* sender)
     {
-        return sender->track();
+        return sender->track().get();
+    }
+
+    UNITY_INTERFACE_EXPORT MediaStreamTrackInterface* ReceiverGetTrack(RtpReceiverInterface* receiver)
+    {
+        return receiver->track().get();
     }
 
     UNITY_INTERFACE_EXPORT int DataChannelGetID(DataChannelObject* dataChannelObj)

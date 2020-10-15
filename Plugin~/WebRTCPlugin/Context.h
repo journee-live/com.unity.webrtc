@@ -3,7 +3,10 @@
 #include "DummyAudioDevice.h"
 #include "DummyVideoEncoder.h"
 #include "PeerConnectionObject.h"
+#include "UnityVideoRenderer.h"
 #include "Codec/IEncoder.h"
+
+using namespace ::webrtc;
 
 namespace unity
 {
@@ -58,12 +61,13 @@ namespace webrtc
 
 
         // MediaStreamTrack
-        webrtc::VideoTrackInterface* CreateVideoTrack(const std::string& label, void* frame);
+        webrtc::VideoTrackInterface* CreateVideoTrack(
+            const std::string& label, void* frame, UnityGfxRenderer gfxRenderer);
         webrtc::AudioTrackInterface* CreateAudioTrack(const std::string& label);
         void DeleteMediaStreamTrack(webrtc::MediaStreamTrackInterface* track);
         void StopMediaStreamTrack(webrtc::MediaStreamTrackInterface* track);
         void ProcessAudioData(const float* data, int32 size);
-
+        UnityVideoTrackSource* GetVideoSource(const MediaStreamTrackInterface* track);
 
         // PeerConnection
         PeerConnectionObject* CreatePeerConnection(const webrtc::PeerConnectionInterface::RTCConfiguration& config);
@@ -81,7 +85,11 @@ namespace webrtc
         void AddDataChannel(std::unique_ptr<DataChannelObject>& channel);
         void DeleteDataChannel(DataChannelObject* obj);
 
-        
+        // Renderer
+        UnityVideoRenderer* CreateVideoRenderer();
+        UnityVideoRenderer* GetVideoRenderer(uint32_t id);
+        void DeleteVideoRenderer(UnityVideoRenderer* renderer);
+
         // You must call these methods on Rendering thread.
         bool InitializeEncoder(IEncoder* encoder, webrtc::MediaStreamTrackInterface* track);
         bool FinalizeEncoder(IEncoder* encoder);
@@ -104,13 +112,13 @@ namespace webrtc
         std::list<rtc::scoped_refptr<webrtc::MediaStreamTrackInterface>> m_mediaSteamTrackList;
         std::vector<rtc::scoped_refptr<const webrtc::RTCStatsReport>> m_listStatsReport;
         std::map<const PeerConnectionObject*, rtc::scoped_refptr<PeerConnectionObject>> m_mapClients;
-        std::map<const webrtc::MediaStreamTrackInterface*, UnityVideoTrackSource*> m_mapVideoCapturer;
         std::map<const std::string, rtc::scoped_refptr<webrtc::MediaStreamInterface>> m_mapMediaStream;
         std::map<const webrtc::MediaStreamInterface*, std::unique_ptr<MediaStreamObserver>> m_mapMediaStreamObserver;
         std::map<const webrtc::PeerConnectionInterface*, rtc::scoped_refptr<SetSessionDescriptionObserver>> m_mapSetSessionDescriptionObserver;
         std::map<const webrtc::MediaStreamTrackInterface*, std::unique_ptr<VideoEncoderParameter>> m_mapVideoEncoderParameter;
         std::map<const DataChannelObject*, std::unique_ptr<DataChannelObject>> m_mapDataChannels;
-
+        std::map<const uint32_t, std::unique_ptr<UnityVideoRenderer>> m_mapVideoRenderer;
+ 
         // todo(kazuki): remove map after moving hardware encoder instance to DummyVideoEncoder.
         std::map<const uint32_t, IEncoder*> m_mapIdAndEncoder;
 
@@ -122,6 +130,9 @@ namespace webrtc
         // todo(kazuki): static variable to set id each encoder.
         static uint32_t s_encoderId;
         static uint32_t GenerateUniqueId();
+
+        static uint32_t s_rendererId;
+        static uint32_t GenerateRendererId();
     };
 
     extern bool Convert(const std::string& str, webrtc::PeerConnectionInterface::RTCConfiguration& config);

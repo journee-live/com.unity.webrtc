@@ -3,13 +3,15 @@
 #include "DataChannelObject.h"
 #include "PeerConnectionStatsCollectorCallback.h"
 
+using namespace ::webrtc;
+
 namespace unity
 {
 namespace webrtc
 {
 
     using DelegateCreateSDSuccess = void(*)(PeerConnectionObject*, RTCSdpType, const char*);
-    using DelegateCreateSDFailure = void(*)(PeerConnectionObject*);
+    using DelegateCreateSDFailure = void(*)(PeerConnectionObject*, webrtc::RTCErrorType, const char*);
     using DelegateLocalSdpReady = void(*)(PeerConnectionObject*, const char*, const char*);
     using DelegateIceCandidate = void(*)(PeerConnectionObject*, const char*, const char*, const int);
     using DelegateOnIceConnectionChange = void(*)(PeerConnectionObject*, webrtc::PeerConnectionInterface::IceConnectionState);
@@ -26,9 +28,12 @@ namespace webrtc
         ~PeerConnectionObject();
 
         void Close();
-        void SetLocalDescription(const RTCSessionDescription& desc, webrtc::SetSessionDescriptionObserver* observer);
+        RTCErrorType SetLocalDescription(
+            const RTCSessionDescription& desc, webrtc::SetSessionDescriptionObserver* observer, char* error[]);
+        RTCErrorType SetRemoteDescription(
+            const RTCSessionDescription& desc, webrtc::SetSessionDescriptionObserver* observer, char* error[]);
+        
         bool GetSessionDescription(const webrtc::SessionDescriptionInterface* sdp, RTCSessionDescription& desc) const;
-        void SetRemoteDescription(const RTCSessionDescription& desc, webrtc::SetSessionDescriptionObserver* observer);
         webrtc::RTCErrorType SetConfiguration(const std::string& config);
         std::string GetConfiguration() const;
         void CreateOffer(const RTCOfferOptions& options);
