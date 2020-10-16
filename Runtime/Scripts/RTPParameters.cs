@@ -9,28 +9,25 @@ namespace Unity.WebRTC
     {
 
         public bool active;
-        public ulong? maxBitrate;
-        public ulong? minBitrate;
-        public uint? maxFramerate;
-        public double? scaleResolutionDownBy;
-        public string rid;
 
         // [autr] newly added parameters for NVIDIA SDK
 
         public uint? rateControlMode;
-        public uint? minQP;
-        public uint? maxQP;
+        public ulong? maxBitrate;
+        public ulong? minBitrate;
+        public uint? minFramerate;
+        public uint? maxFramerate;
         public uint? width;
         public uint? height;
-        public uint? minFramerate;
+        public uint? minQP;
+        public uint? maxQP;
         public uint? intraRefreshPeriod;
         public uint? intraRefreshCount;
-
-        public bool AQ;
-
+        public bool enableAQ;
         public uint? maxNumRefFrames;
-
-        public bool GOP;
+        public bool infiniteGOP;
+        public double? scaleResolutionDownBy;
+        public string rid;
 
 
         public RTCRtpEncodingParameters() {
@@ -40,24 +37,19 @@ namespace Unity.WebRTC
         {
             active = parameter.active;
 
-            if (parameter.hasValueMaxBitrate)
-                maxBitrate = parameter.maxBitrate;
-            if (parameter.hasValueMinBitrate)
-                minBitrate = parameter.minBitrate;
-            if (parameter.hasValueMaxFramerate)
-                maxFramerate = parameter.maxFramerate;
-            if (parameter.hasValueScaleResolutionDownBy)
-                scaleResolutionDownBy = parameter.scaleResolutionDownBy;
-            if(parameter.rid != IntPtr.Zero)
-                rid = parameter.rid.AsAnsiStringWithFreeMem();
-
 
             // [autr] newly added parameters for NVIDIA SDK
 
             if (parameter.hasValueRateControlMode)
                 rateControlMode = parameter.rateControlMode;
+            if (parameter.hasValueMaxBitrate)
+                maxBitrate = parameter.maxBitrate;
+            if (parameter.hasValueMinBitrate)
+                minBitrate = parameter.minBitrate;
             if (parameter.hasValueMinFramerate)
                 minFramerate = parameter.minFramerate;
+            if (parameter.hasValueMaxFramerate)
+                maxFramerate = parameter.maxFramerate;
             if (parameter.hasValueWidth)
                 width = parameter.width;
             if (parameter.hasValueHeight)
@@ -70,10 +62,19 @@ namespace Unity.WebRTC
                 intraRefreshPeriod = parameter.intraRefreshPeriod;
             if (parameter.hasValueIntraRefreshCount)
                 intraRefreshCount = parameter.intraRefreshCount;
-            //if (parameter.hasValueMaxNumRefFrames)
-            //    maxNumRefFrames = parameter.maxNumRefFrames;
-            //if (parameter.hasValueGOP)
-            //    GOP = parameter.GOP;
+            if (parameter.hasValueEnableAQ)
+               enableAQ = parameter.enableAQ;
+            if (parameter.hasValueMaxNumRefFrames)
+               maxNumRefFrames = parameter.maxNumRefFrames;
+            if (parameter.hasValueInfiniteGOP)
+               infiniteGOP = parameter.infiniteGOP;
+
+               
+            if (parameter.hasValueScaleResolutionDownBy)
+                scaleResolutionDownBy = parameter.scaleResolutionDownBy;
+            if(parameter.rid != IntPtr.Zero)
+                rid = parameter.rid.AsAnsiStringWithFreeMem();
+
         }
 
         public void CopyInternal(ref RTCRtpEncodingParametersInternal instance)
@@ -130,15 +131,13 @@ namespace Unity.WebRTC
             if (intraRefreshCount.HasValue)
                 instance.intraRefreshCount = intraRefreshCount.Value;
 
-            //instance.hasValueMaxNumRefFrames = maxNumRefFrames.HasValue;
-            //if (maxNumRefFrames.HasValue)
-            //    instance.maxNumRefFrames = maxNumRefFrames.Value;
+            instance.enableAQ = enableAQ;
+
+            instance.hasValueMaxNumRefFrames = maxNumRefFrames.HasValue;
+            if (maxNumRefFrames.HasValue)
+               instance.maxNumRefFrames = maxNumRefFrames.Value;
                 
-            //instance.GOP = GOP;
-
-            //instance.AQ = AQ;
-
-
+            instance.infiniteGOP = infiniteGOP;
 
             instance.rid = string.IsNullOrEmpty(rid) ? IntPtr.Zero : Marshal.StringToCoTaskMemAnsi(rid);
         }
@@ -195,7 +194,7 @@ namespace Unity.WebRTC
         public IntPtr transactionId;
     }
 
-    [StructLayout(LayoutKind.Sequential, Pack = 1)]
+    [StructLayout(LayoutKind.Sequential)]
     public struct RTCRtpEncodingParametersInternal
     {
         [MarshalAs(UnmanagedType.U1)]
@@ -206,6 +205,14 @@ namespace Unity.WebRTC
         public uint rateControlMode;
 
         [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueMaxBitrate;
+        public ulong maxBitrate;
+
+        [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueMinBitrate;
+        public ulong minBitrate;
+
+        [MarshalAs(UnmanagedType.U1)]
         public bool hasValueWidth;
         public uint width;
 
@@ -214,26 +221,17 @@ namespace Unity.WebRTC
         public uint height;
 
         [MarshalAs(UnmanagedType.U1)]
-        public bool hasValueMaxBitrate;
-        public ulong maxBitrate;
-        [MarshalAs(UnmanagedType.U1)]
-        public bool hasValueMinBitrate;
-        public ulong minBitrate;
-
-        [MarshalAs(UnmanagedType.U1)]
         public bool hasValueMinFramerate;
         public uint minFramerate;
+
         [MarshalAs(UnmanagedType.U1)]
         public bool hasValueMaxFramerate;
         public uint maxFramerate;
 
         [MarshalAs(UnmanagedType.U1)]
-        public bool hasValueScaleResolutionDownBy;
-        public double scaleResolutionDownBy;
-
-        [MarshalAs(UnmanagedType.U1)]
         public bool hasValueMinQP;
         public uint minQP;
+
         [MarshalAs(UnmanagedType.U1)]
         public bool hasValueMaxQP;
         public uint maxQP;
@@ -246,17 +244,23 @@ namespace Unity.WebRTC
         public bool hasValueIntraRefreshCount;
         public uint intraRefreshCount;
 
-        //[MarshalAs(UnmanagedType.U1)]
-        //public bool hasValueAQ;
-        //public bool AQ;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueEnableAQ;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool enableAQ;
 
-        //[MarshalAs(UnmanagedType.U1)]
-        //public bool hasValueMaxNumRefFrames;
-        //public uint maxNumRefFrames;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueMaxNumRefFrames;
+        public uint maxNumRefFrames;
 
-        //[MarshalAs(UnmanagedType.U1)]
-        //public bool hasValueGOP;
-        //public bool GOP;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueInfiniteGOP;
+        [MarshalAs(UnmanagedType.U1)]
+        public bool infiniteGOP;
+
+        [MarshalAs(UnmanagedType.U1)]
+        public bool hasValueScaleResolutionDownBy;
+        public double scaleResolutionDownBy;
 
         public IntPtr rid;
     }

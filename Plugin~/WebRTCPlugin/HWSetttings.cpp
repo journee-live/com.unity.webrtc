@@ -25,9 +25,9 @@ namespace unity {
             minFramerate = 10;
             intraRefreshPeriod = 30;
             intraRefreshCount = 10;
-            AQ = true;
+            enableAQ = true;
             maxNumRefFrames = 0;
-            GOP = false;
+            infiniteGOP = false;
 
             b_maxBitrate = false;
             b_minBitrate = false;
@@ -40,9 +40,9 @@ namespace unity {
             b_minFramerate = false;
             b_intraRefreshPeriod = false;
             b_intraRefreshCount = false;
-            b_AQ = false;
+            b_enableAQ = false;
             b_maxNumRefFrames = false;
-            b_GOP = false;
+            b_infiniteGOP = false;
         }
     }
 

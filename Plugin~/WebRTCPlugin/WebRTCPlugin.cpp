@@ -658,41 +658,54 @@ extern "C"
     struct RTCRtpEncodingParameters
     {
         bool active;
-        bool hasValueMaxBitrate;
-        uint64_t maxBitrate;
-        bool hasValueMinBitrate;
-        uint64_t minBitrate;
-        bool hasValueMaxFramerate;
-        uint32_t maxFramerate;
-        bool hasValueScaleResolutionDownBy;
-        double scaleResolutionDownBy;
-        char* rid;
-
-
-        // [autr] newly added parameters for NVIDIA SDK
 
         bool hasValueRateControlMode;
         uint32_t rateControlMode;
+
+        bool hasValueMinBitrate;
+        uint64_t minBitrate;
+
+        bool hasValueMaxBitrate;
+        uint64_t maxBitrate;
+
         bool hasValueWidth;
         uint32_t width;
+
         bool hasValueHeight;
         uint32_t height;
-        bool hasValueMinQP;
-        uint32_t minQP;
-        bool hasValueMaxQP;
-        uint32_t maxQP;
+
         bool hasValueMinFramerate;
         uint32_t minFramerate;
+
+        bool hasValueMaxFramerate;
+        uint32_t maxFramerate;
+
+        bool hasValueMinQP;
+        uint32_t minQP;
+
+        bool hasValueMaxQP;
+        uint32_t maxQP;
+
         bool hasValueIntraRefreshPeriod;
         uint32_t intraRefreshPeriod;
+
         bool hasValueIntraRefreshCount;
         uint32_t intraRefreshCount;
-        bool hasValueAQ;
-        bool AQ;
+
+        bool hasValueEnableAQ;
+        bool enableAQ;
+
         bool hasValueMaxNumRefFrames;
         uint32_t maxNumRefFrames;
-        bool hasValueGOP;
-        bool GOP;
+
+        bool hasValueInfiniteGOP;
+        bool infiniteGOP;
+
+        bool hasValueScaleResolutionDownBy;
+        double scaleResolutionDownBy;
+
+        char* rid;
+
     };
 
     struct RTCRtpSendParameters
@@ -762,9 +775,9 @@ extern "C"
                 hw->minFramerate = static_cast<int>(src->minFramerate);
                 hw->intraRefreshPeriod = static_cast<int>(src->intraRefreshPeriod);
                 hw->intraRefreshCount = static_cast<int>(src->intraRefreshCount);
-                hw->AQ = src->AQ;
+                hw->enableAQ = src->enableAQ;
                 hw->maxNumRefFrames = static_cast<int>(src->maxNumRefFrames);
-                hw->GOP = src->GOP;
+                hw->infiniteGOP = src->infiniteGOP;
 
                 hw->msg = "[WebRTCPlugin.cpp] parameters set";
                 DebugLog("[WebRTCPlugin.cpp] parameters set");

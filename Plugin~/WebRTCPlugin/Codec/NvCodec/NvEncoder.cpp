@@ -144,7 +144,7 @@ namespace unity
             // Optimise: infinite or FPS gop length
 
             nvEncConfig.encodeCodecConfig.h264Config.idrPeriod = m_frameRate;
-            nvEncConfig.gopLength = (hw->GOP) ? NVENC_INFINITE_GOPLENGTH : m_frameRate; // NVENC_INFINITE_GOPLENGTH
+            nvEncConfig.gopLength = (hw->infiniteGOP) ? NVENC_INFINITE_GOPLENGTH : m_frameRate; // NVENC_INFINITE_GOPLENGTH
 
             // Error Recovery Settings: infra frame refreshing
 
@@ -155,8 +155,8 @@ namespace unity
 
             // Error Recovery Settings: adaptive quantization
 
-            nvEncConfig.rcParams.enableAQ = hw->AQ;
-            if (hw->maxNumRefFrames > 0) nvEncConfig.encodeCodecConfig.h264Config.maxNumRefFrames = hw->maxNumRefFrames;
+            nvEncConfig.rcParams.enableAQ = hw->enableAQ;
+            if (hw->maxNumRefFrames > 0) nvEncConfig.encodeCodecConfig.h264Config.maxNumRefFrames = hw->maxNumRefFrames;  // zero will use driver's default size
 
             // Optimise: quantisation parameters
 

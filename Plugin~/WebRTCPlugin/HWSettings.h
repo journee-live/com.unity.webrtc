@@ -11,35 +11,48 @@ namespace unity
         class HWSettings {
         public:
 
-            int maxBitrate;
-            int minBitrate;
-            int maxFramerate;
+            bool b_rateControlMode;
             int rateControlMode;
-            int minQP ;
-            int maxQP ;
-            int width ;
-            int height;
-            int minFramerate ;
-            int intraRefreshPeriod ;
-            int intraRefreshCount ;
-            bool AQ;
-            int maxNumRefFrames;
-            bool GOP;
 
             bool b_maxBitrate;
+            int maxBitrate;
+
             bool b_minBitrate;
-            bool b_maxFramerate;
-            bool b_rateControlMode;
-            bool b_minQP;
-            bool b_maxQP;
+            int minBitrate;
+
             bool b_width;
+            int width;
+
             bool b_height;
+            int height;
+
             bool b_minFramerate;
+            int minFramerate;
+
+            bool b_maxFramerate;
+            int maxFramerate;
+
+            bool b_minQP;
+            int minQP ;
+
+            bool b_maxQP;
+            int maxQP ;
+
             bool b_intraRefreshPeriod;
+            int intraRefreshPeriod ;
+
             bool b_intraRefreshCount;
-            bool b_AQ;
+            int intraRefreshCount ;
+
+            bool b_enableAQ;
+            bool enableAQ;
+
             bool b_maxNumRefFrames;
-            bool b_GOP;
+            int maxNumRefFrames;
+
+            bool b_infiniteGOP;
+            bool infiniteGOP;
+
 
 
 
