@@ -75,7 +75,6 @@ namespace unity
             nvEncInitializeParams.darHeight = m_height;
             nvEncInitializeParams.encodeGUID = NV_ENC_CODEC_H264_GUID;
             nvEncInitializeParams.presetGUID = NV_ENC_PRESET_LOW_LATENCY_HP_GUID; // [autr] switch to HP
-            nvEncInitializeParams.frameRateNum = m_frameRate;
             nvEncInitializeParams.frameRateDen = 1;
             nvEncInitializeParams.enablePTD = 1;
             nvEncInitializeParams.reportSliceOffsets = 0;
@@ -123,8 +122,6 @@ namespace unity
             //---------------------------------------------------------------------------------------------
 
 
-            nvEncConfig.rcParams.rateControlMode = NV_ENC_PARAMS_RC_CBR; // [autr] default CBR
-
             nvEncConfig.rcParams.averageBitRate =
                 (static_cast<unsigned int>(5.0f *
                     nvEncInitializeParams.encodeWidth *
@@ -142,6 +139,15 @@ namespace unity
 
             HWSettings* hw = HWSettings::getPtr();
             HWSettings& hw_ = *hw;
+
+            // Set RCM
+
+            nvEncConfig.rcParams.rateControlMode = GetRateControlMode(hw->rateControlMode); // [autr] default CBR
+
+            // Set FPS
+
+            //m_frameRate = hw->minFramerate; // TODO: investigate why setting this causes more glitches
+            nvEncInitializeParams.frameRateNum = m_frameRate;
 
             // Optimise: infinite or FPS gop length
 
@@ -320,7 +326,7 @@ namespace unity
                 HWSettings* hw = HWSettings::getPtr();
 
                 if (m_frameRate > 240) m_frameRate = 240; // unlikely: nvcodec do not allow a framerate over 240
-                if (m_frameRate > hw->maxFramerate) m_frameRate = hw->maxFramerate;
+                //if (m_frameRate > hw->maxFramerate) m_frameRate = hw->maxFramerate;
 
                 Debugger::Log("frameRateNum", m_frameRate);
 
