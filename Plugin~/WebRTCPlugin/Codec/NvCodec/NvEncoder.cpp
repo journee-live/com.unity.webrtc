@@ -4,7 +4,8 @@
 #include <cstring>
 #include "GraphicsDevice/IGraphicsDevice.h"
 #include "HWSettings.h"
-
+#include <iostream>
+#include "Debugger.h"
 #if _WIN32
 #else
 #include <dlfcn.h>
@@ -140,6 +141,7 @@ namespace unity
             // [autr] begin...
 
             HWSettings* hw = HWSettings::getPtr();
+            HWSettings& hw_ = *hw;
 
             // Optimise: infinite or FPS gop length
 
@@ -148,14 +150,21 @@ namespace unity
 
             // Error Recovery Settings: infra frame refreshing
 
-            nvEncConfig.encodeCodecConfig.h264Config.enableIntraRefresh = (hw->intraRefreshPeriod >= m_frameRate) && (hw->intraRefreshPeriod > hw->intraRefreshCount);
-            nvEncConfig.encodeCodecConfig.h264Config.intraRefreshPeriod = hw->intraRefreshPeriod;
-            nvEncConfig.encodeCodecConfig.h264Config.intraRefreshCnt = hw->intraRefreshCount;
-            nvEncConfig.rcParams.maxBitRate = hw->maxBitrate; // VBR only
+            if (hw->intraRefreshPeriod > 0 && hw->intraRefreshCount > 0) {
+
+                nvEncConfig.encodeCodecConfig.h264Config.enableIntraRefresh = true;
+                nvEncConfig.encodeCodecConfig.h264Config.intraRefreshPeriod = hw->intraRefreshPeriod;
+                nvEncConfig.encodeCodecConfig.h264Config.intraRefreshCnt = hw->intraRefreshCount;
+            }
+
+            // Optimise: bitrates
+
+            if (hw->minBitrate > 0) nvEncConfig.rcParams.averageBitRate = hw->minBitrate; // used with CBR, VBR etc (will override Unity's default calculation)
+            if (hw->maxBitrate > 0) nvEncConfig.rcParams.maxBitRate = hw->maxBitrate; // VBR only
 
             // Error Recovery Settings: adaptive quantization
 
-            nvEncConfig.rcParams.enableAQ = hw->enableAQ;
+            if (hw->enableAQ) nvEncConfig.rcParams.enableAQ = true;
             if (hw->maxNumRefFrames > 0) nvEncConfig.encodeCodecConfig.h264Config.maxNumRefFrames = hw->maxNumRefFrames;  // zero will use driver's default size
 
             // Optimise: quantisation parameters
@@ -299,15 +308,23 @@ namespace unity
 
             if (nvEncConfig.rcParams.averageBitRate != m_targetBitrate)
             {
+
+                Debugger::Log("averageBitrate", m_targetBitrate);
+
                 nvEncConfig.rcParams.averageBitRate = m_targetBitrate;
+
                 settingChanged = true;
             }
             if (nvEncInitializeParams.frameRateNum != m_frameRate)
             {
-                // nvcodec do not allow a framerate over 240
-                const uint32_t kMaxFramerate = 240;
-                uint32_t targetFramerate = std::min(m_frameRate, kMaxFramerate);
-                nvEncInitializeParams.frameRateNum = targetFramerate;
+                HWSettings* hw = HWSettings::getPtr();
+
+                if (m_frameRate > 240) m_frameRate = 240; // unlikely: nvcodec do not allow a framerate over 240
+                if (m_frameRate > hw->maxFramerate) m_frameRate = hw->maxFramerate;
+
+                Debugger::Log("frameRateNum", m_frameRate);
+
+                nvEncInitializeParams.frameRateNum = m_frameRate;
                 settingChanged = true;
             }
             if (settingChanged)

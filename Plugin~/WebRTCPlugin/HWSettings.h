@@ -33,16 +33,16 @@ namespace unity
             int maxFramerate;
 
             bool b_minQP;
-            int minQP ;
+            int minQP;
 
             bool b_maxQP;
-            int maxQP ;
+            int maxQP;
 
             bool b_intraRefreshPeriod;
-            int intraRefreshPeriod ;
+            int intraRefreshPeriod;
 
             bool b_intraRefreshCount;
-            int intraRefreshCount ;
+            int intraRefreshCount;
 
             bool b_enableAQ;
             bool enableAQ;

@@ -1,5 +1,5 @@
 #pragma once
-
+#include "HWSettings.h"
 namespace unity
 {
 namespace webrtc
